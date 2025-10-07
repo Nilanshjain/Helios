@@ -1,0 +1,229 @@
+version: '3.8'
+
+services:
+  # Zookeeper for Kafka
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: helios-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    networks:
+      - helios-network
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "2181"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Kafka Broker
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: helios-kafka
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_NUM_PARTITIONS: 10
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 1
+      KAFKA_LOG_RETENTION_HOURS: 168  # 7 days
+      KAFKA_COMPRESSION_TYPE: snappy
+    networks:
+      - helios-network
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+
+  # Kafka UI for visualization
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: helios-kafka-ui
+    depends_on:
+      - kafka
+    ports:
+      - "9000:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: helios-local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+    networks:
+      - helios-network
+
+  # TimescaleDB (PostgreSQL with time-series extension)
+  timescaledb:
+    image: timescale/timescaledb:latest-pg15
+    container_name: helios-timescaledb
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: helios
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_INITDB_ARGS: "-c shared_preload_libraries=timescaledb"
+    volumes:
+      - timescaledb-data:/var/lib/postgresql/data
+      - ./config/timescaledb/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - helios-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Prometheus for metrics collection
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: helios-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./config/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    networks:
+      - helios-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9090/-/healthy"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Grafana for visualization
+  grafana:
+    image: grafana/grafana:latest
+    container_name: helios-grafana
+    depends_on:
+      - prometheus
+      - timescaledb
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_INSTALL_PLUGINS: grafana-clock-panel
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./config/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./config/grafana/datasources:/etc/grafana/provisioning/datasources
+    networks:
+      - helios-network
+
+  # Go Ingestion Service (will be built locally)
+  ingestion:
+    build:
+      context: ./services/ingestion
+      dockerfile: Dockerfile
+    container_name: helios-ingestion
+    depends_on:
+      kafka:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+      - "8081:8081"  # Metrics endpoint
+    environment:
+      KAFKA_BROKERS: kafka:29092
+      KAFKA_TOPIC: events
+      DB_HOST: timescaledb
+      DB_PORT: 5432
+      DB_NAME: helios
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      LOG_LEVEL: info
+      METRICS_PORT: 8081
+    networks:
+      - helios-network
+    restart: unless-stopped
+
+  # Python Detection Service (will be built locally)
+  detection:
+    build:
+      context: ./services/detection
+      dockerfile: Dockerfile
+    container_name: helios-detection
+    depends_on:
+      kafka:
+        condition: service_healthy
+      timescaledb:
+        condition: service_healthy
+    ports:
+      - "8000:8000"  # FastAPI service
+    environment:
+      KAFKA_BROKERS: kafka:29092
+      KAFKA_CONSUMER_GROUP: anomaly-detectors
+      KAFKA_TOPIC_EVENTS: events
+      KAFKA_TOPIC_ANOMALIES: anomaly-alerts
+      DB_HOST: timescaledb
+      DB_PORT: 5432
+      DB_NAME: helios
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      MODEL_PATH: /app/models/isolation_forest.pkl
+      DETECTION_THRESHOLD: -0.7
+      WINDOW_SIZE_MINUTES: 5
+    volumes:
+      - ./services/detection/models:/app/models
+    networks:
+      - helios-network
+    restart: unless-stopped
+
+  # Storage writer service (Kafka consumer -> TimescaleDB)
+  storage-writer:
+    build:
+      context: ./services/ingestion
+      dockerfile: Dockerfile
+    container_name: helios-storage-writer
+    depends_on:
+      kafka:
+        condition: service_healthy
+      timescaledb:
+        condition: service_healthy
+    environment:
+      KAFKA_BROKERS: kafka:29092
+      KAFKA_CONSUMER_GROUP: storage-writers
+      KAFKA_TOPIC: events
+      DB_HOST: timescaledb
+      DB_PORT: 5432
+      DB_NAME: helios
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      BATCH_SIZE: 100
+      BATCH_TIMEOUT_MS: 1000
+    command: ["./consumer"]  # Run consumer binary instead of API
+    networks:
+      - helios-network
+    restart: unless-stopped
+
+networks:
+  helios-network:
+    driver: bridge
+    name: helios-network
+
+volumes:
+  timescaledb-data:
+    name: helios-timescaledb-data
+  prometheus-data:
+    name: helios-prometheus-data
+  grafana-data:
+    name: helios-grafana-data

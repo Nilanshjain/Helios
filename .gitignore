@@ -1,0 +1,176 @@
+# AI Assistant files - DO NOT COMMIT
+.claude/
+.claude*
+*.claude
+.cursor/
+.aider*
+
+# Markdown files (except README.md and specific docs)
+*.md
+!README.md
+!PROJECT_PLAN.md
+
+# Go specific
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+go.work
+vendor/
+*.sum
+
+# Go build artifacts
+services/ingestion/ingestion
+services/ingestion/main
+bin/
+dist/
+
+# Python specific
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+*.log
+
+# Python virtual environments
+venv/
+env/
+ENV/
+.venv
+poetry.lock
+
+# Python testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.hypothesis/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb
+
+# ML Models
+*.pkl
+*.joblib
+*.h5
+*.pb
+models/*.pkl
+models/*.joblib
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.sublime-project
+*.sublime-workspace
+
+# Terraform
+*.tfstate
+*.tfstate.*
+*.tfvars
+.terraform/
+.terraform.lock.hcl
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Docker
+*.log
+docker-compose.override.yml
+
+# Environment variables
+.env
+.env.*
+!.env.example
+*.env.local
+*.env.production
+*.env.staging
+
+# Secrets and credentials
+*secret*
+*Secret*
+*SECRET*
+credentials.json
+*.pem
+*.key
+*.crt
+*.cert
+id_rsa*
+*.p12
+*.pfx
+
+# AWS
+.aws/
+*.aws
+
+# Kubernetes
+kubeconfig
+*.kubeconfig
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS files
+Thumbs.db
+Desktop.ini
+.DS_Store
+._*
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+*.bak
+*.swp
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Generated files
+generated/
+auto-generated/
+
+# Test coverage
+coverage/
+*.cover
+
+# Performance profiling
+*.prof
+*.pprof
+
+# Backup files
+*.backup
+backup/
