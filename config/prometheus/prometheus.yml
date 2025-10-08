@@ -1,0 +1,41 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'helios-local'
+    environment: 'development'
+
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          service: 'prometheus'
+
+  # Helios Ingestion Service (API)
+  - job_name: 'helios-ingestion'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['ingestion:8081']
+        labels:
+          service: 'ingestion'
+          component: 'api'
+
+  # Helios Storage Writer (Kafka consumer)
+  - job_name: 'helios-storage-writer'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['storage-writer:8081']
+        labels:
+          service: 'storage-writer'
+          component: 'consumer'
+
+  # Helios Detection Service (ML)
+  - job_name: 'helios-detection'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['detection:8000']
+        labels:
+          service: 'detection'
+          component: 'ml'
