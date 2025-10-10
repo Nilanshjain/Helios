@@ -156,7 +156,7 @@ services:
       - helios-network
     restart: unless-stopped
 
-  # Python Detection Service (will be built locally)
+  # Python Detection Service - API Server
   detection:
     build:
       context: ./services/detection
@@ -169,21 +169,65 @@ services:
         condition: service_healthy
     ports:
       - "8000:8000"  # FastAPI service
+      - "8001:8001"  # Metrics endpoint
     environment:
       KAFKA_BROKERS: kafka:29092
+      KAFKA_EVENTS_TOPIC: events
+      KAFKA_ALERTS_TOPIC: anomaly-alerts
       KAFKA_CONSUMER_GROUP: anomaly-detectors
-      KAFKA_TOPIC_EVENTS: events
-      KAFKA_TOPIC_ANOMALIES: anomaly-alerts
       DB_HOST: timescaledb
       DB_PORT: 5432
       DB_NAME: helios
       DB_USER: postgres
       DB_PASSWORD: postgres
       MODEL_PATH: /app/models/isolation_forest.pkl
-      DETECTION_THRESHOLD: -0.7
+      CONTAMINATION: 0.05
+      ANOMALY_THRESHOLD: -0.7
       WINDOW_SIZE_MINUTES: 5
+      MIN_EVENTS_PER_WINDOW: 10
+      API_HOST: 0.0.0.0
+      API_PORT: 8000
+      LOG_LEVEL: INFO
+      METRICS_PORT: 8001
     volumes:
-      - ./services/detection/models:/app/models
+      - detection-models:/app/models
+    command: ["python", "-m", "app.main"]
+    networks:
+      - helios-network
+    restart: unless-stopped
+
+  # Detection Consumer - Real-time anomaly detection
+  detection-consumer:
+    build:
+      context: ./services/detection
+      dockerfile: Dockerfile
+    container_name: helios-detection-consumer
+    depends_on:
+      kafka:
+        condition: service_healthy
+      timescaledb:
+        condition: service_healthy
+      detection:
+        condition: service_started
+    environment:
+      KAFKA_BROKERS: kafka:29092
+      KAFKA_EVENTS_TOPIC: events
+      KAFKA_ALERTS_TOPIC: anomaly-alerts
+      KAFKA_CONSUMER_GROUP: anomaly-detectors
+      DB_HOST: timescaledb
+      DB_PORT: 5432
+      DB_NAME: helios
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      MODEL_PATH: /app/models/isolation_forest.pkl
+      CONTAMINATION: 0.05
+      ANOMALY_THRESHOLD: -0.7
+      WINDOW_SIZE_MINUTES: 5
+      MIN_EVENTS_PER_WINDOW: 10
+      LOG_LEVEL: INFO
+    volumes:
+      - detection-models:/app/models
+    command: ["python", "-m", "app.consumers.detection_consumer"]
     networks:
       - helios-network
     restart: unless-stopped
@@ -227,3 +271,5 @@ volumes:
     name: helios-prometheus-data
   grafana-data:
     name: helios-grafana-data
+  detection-models:
+    name: helios-detection-models
