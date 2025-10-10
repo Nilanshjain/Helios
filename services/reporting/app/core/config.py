@@ -10,12 +10,12 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=False)
 
     # Report Generator
-    report_generator_mode: str = "mock"  # 'openai' or 'mock'
-    openai_api_key: str = ""
-    openai_model: str = "gpt-4"
-    openai_max_tokens: int = 1500
-    openai_temperature: float = 0.3
-    openai_max_retries: int = 3
+    report_generator_mode: str = "mock"  # 'claude' or 'mock'
+    anthropic_api_key: str = ""
+    claude_model: str = "claude-3-5-sonnet-20241022"
+    claude_max_tokens: int = 1500
+    claude_temperature: float = 0.3
+    claude_max_retries: int = 3
 
     # Kafka
     kafka_brokers: str = "localhost:9092"
@@ -64,9 +64,9 @@ class Settings(BaseSettings):
         )
 
     @property
-    def use_openai(self) -> bool:
-        """Check if OpenAI should be used"""
-        return self.report_generator_mode == "openai" and bool(self.openai_api_key)
+    def use_claude(self) -> bool:
+        """Check if Claude should be used"""
+        return self.report_generator_mode == "claude" and bool(self.anthropic_api_key)
 
 
 # Global settings instance
