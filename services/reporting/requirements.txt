@@ -8,8 +8,8 @@ pydantic-settings==2.1.0
 kafka-python==2.0.2
 psycopg2-binary==2.9.9
 
-# OpenAI
-openai==1.10.0
+# Anthropic Claude
+anthropic==0.18.1
 
 # Data Processing
 pandas==2.1.4
