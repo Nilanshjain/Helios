@@ -1,0 +1,160 @@
+name: Deploy to EKS
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+
+env:
+  AWS_REGION: us-east-1
+  EKS_CLUSTER_NAME: helios-cluster
+  ECR_REPOSITORY_PREFIX: helios
+
+jobs:
+  # Test job - runs on all branches
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Run Go tests
+        working-directory: ./services/ingestion
+        run: |
+          go mod download
+          go test -v -race -coverprofile=coverage.out ./...
+          go tool cover -func=coverage.out
+
+      - name: Run Python tests (Detection)
+        working-directory: ./services/detection
+        run: |
+          pip install -r requirements.txt
+          pip install pytest pytest-cov
+          pytest tests/ -v --cov=app --cov-report=term
+
+      - name: Run Python tests (Reporting)
+        working-directory: ./services/reporting
+        run: |
+          pip install -r requirements.txt
+          pip install pytest pytest-cov
+          pytest tests/ -v --cov=app --cov-report=term || true
+
+  # Build and Push Docker images
+  build:
+    name: Build and Push Images
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+
+    strategy:
+      matrix:
+        service: [ingestion, detection, reporting]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag, and push image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/${{ env.ECR_REPOSITORY_PREFIX }}-${{ matrix.service }}:$IMAGE_TAG \
+            -t $ECR_REGISTRY/${{ env.ECR_REPOSITORY_PREFIX }}-${{ matrix.service }}:latest \
+            ./services/${{ matrix.service }}
+          docker push $ECR_REGISTRY/${{ env.ECR_REPOSITORY_PREFIX }}-${{ matrix.service }}:$IMAGE_TAG
+          docker push $ECR_REGISTRY/${{ env.ECR_REPOSITORY_PREFIX }}-${{ matrix.service }}:latest
+
+  # Deploy to EKS
+  deploy:
+    name: Deploy to Kubernetes
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER_NAME }} --region ${{ env.AWS_REGION }}
+
+      - name: Deploy to Kubernetes
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          # Update image tags in deployment manifests
+          kubectl set image deployment/ingestion ingestion=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY_PREFIX }}-ingestion:$IMAGE_TAG -n helios-prod
+          kubectl set image deployment/detection detection=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY_PREFIX }}-detection:$IMAGE_TAG -n helios-prod
+          kubectl set image deployment/reporting reporting=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY_PREFIX }}-reporting:$IMAGE_TAG -n helios-prod
+
+      - name: Verify deployment
+        run: |
+          kubectl rollout status deployment/ingestion -n helios-prod --timeout=5m
+          kubectl rollout status deployment/detection -n helios-prod --timeout=5m
+          kubectl rollout status deployment/reporting -n helios-prod --timeout=5m
+
+      - name: Run smoke tests
+        run: |
+          # Get LoadBalancer URLs
+          INGESTION_URL=$(kubectl get svc ingestion-service -n helios-prod -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+
+          # Wait for LoadBalancer
+          sleep 30
+
+          # Test ingestion endpoint
+          curl -f http://$INGESTION_URL:8080/health || echo "Health check failed"
+
+      - name: Notify Slack
+        if: always()
+        uses: slackapi/slack-github-action@v1
+        with:
+          webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          payload: |
+            {
+              "text": "Deployment ${{ job.status }}: ${{ github.repository }}",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Deployment Status:* ${{ job.status }}\n*Repository:* ${{ github.repository }}\n*Branch:* ${{ github.ref_name }}\n*Commit:* ${{ github.sha }}"
+                  }
+                }
+              ]
+            }

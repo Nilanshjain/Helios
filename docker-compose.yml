@@ -259,6 +259,115 @@ services:
       - helios-network
     restart: unless-stopped
 
+  # Python Reporting Service - API Server
+  reporting:
+    build:
+      context: ./services/reporting
+      dockerfile: Dockerfile
+    container_name: helios-reporting
+    depends_on:
+      kafka:
+        condition: service_healthy
+      timescaledb:
+        condition: service_healthy
+    ports:
+      - "8002:8002"  # FastAPI service
+      - "8003:8003"  # Metrics endpoint
+    environment:
+      # Report Generator
+      REPORT_GENERATOR_MODE: mock  # Change to 'claude' for production with API key
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      CLAUDE_MODEL: claude-3-5-sonnet-20241022
+      CLAUDE_MAX_TOKENS: 1500
+      CLAUDE_TEMPERATURE: 0.3
+      # Kafka
+      KAFKA_BROKERS: kafka:29092
+      KAFKA_ALERTS_TOPIC: anomaly-alerts
+      KAFKA_CONSUMER_GROUP: reporting-service
+      # Database
+      DB_HOST: timescaledb
+      DB_PORT: 5432
+      DB_NAME: helios
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      # API
+      API_HOST: 0.0.0.0
+      API_PORT: 8002
+      METRICS_PORT: 8003
+      LOG_LEVEL: INFO
+      # Storage
+      REPORTS_DIR: /app/reports
+      REPORT_RETENTION_DAYS: 30
+      # Notifications
+      SLACK_ENABLED: ${SLACK_ENABLED:-false}
+      SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}
+    volumes:
+      - reporting-data:/app/reports
+    command: ["python", "-m", "app.main"]
+    networks:
+      - helios-network
+    restart: unless-stopped
+
+  # Reporting Consumer - Auto-generate reports from anomaly alerts
+  reporting-consumer:
+    build:
+      context: ./services/reporting
+      dockerfile: Dockerfile
+    container_name: helios-reporting-consumer
+    depends_on:
+      kafka:
+        condition: service_healthy
+      timescaledb:
+        condition: service_healthy
+      reporting:
+        condition: service_started
+    environment:
+      # Report Generator
+      REPORT_GENERATOR_MODE: mock
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      CLAUDE_MODEL: claude-3-5-sonnet-20241022
+      CLAUDE_MAX_TOKENS: 1500
+      CLAUDE_TEMPERATURE: 0.3
+      # Kafka
+      KAFKA_BROKERS: kafka:29092
+      KAFKA_ALERTS_TOPIC: anomaly-alerts
+      KAFKA_CONSUMER_GROUP: reporting-service
+      # Database
+      DB_HOST: timescaledb
+      DB_PORT: 5432
+      DB_NAME: helios
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      # Storage
+      REPORTS_DIR: /app/reports
+      REPORT_RETENTION_DAYS: 30
+      # Notifications
+      SLACK_ENABLED: ${SLACK_ENABLED:-false}
+      SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}
+      LOG_LEVEL: INFO
+    volumes:
+      - reporting-data:/app/reports
+    command: ["python", "-m", "app.consumers.report_consumer"]
+    networks:
+      - helios-network
+    restart: unless-stopped
+
+  # AlertManager for Prometheus alerts
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: helios-alertmanager
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./config/prometheus/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+      - alertmanager-data:/alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+    networks:
+      - helios-network
+    restart: unless-stopped
+
 networks:
   helios-network:
     driver: bridge
@@ -273,3 +382,7 @@ volumes:
     name: helios-grafana-data
   detection-models:
     name: helios-detection-models
+  reporting-data:
+    name: helios-reporting-data
+  alertmanager-data:
+    name: helios-alertmanager-data
