@@ -1,0 +1,40 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: helios-config
+  namespace: helios-prod
+data:
+  # Kafka Configuration
+  KAFKA_BROKERS: "kafka-service:9092"
+  KAFKA_EVENTS_TOPIC: "events"
+  KAFKA_ALERTS_TOPIC: "anomaly-alerts"
+
+  # Database Configuration
+  DB_HOST: "timescaledb-service"
+  DB_PORT: "5432"
+  DB_NAME: "helios"
+  DB_USER: "helios"
+
+  # Ingestion Service
+  INGESTION_HTTP_PORT: "8080"
+  INGESTION_GRPC_PORT: "9090"
+  INGESTION_METRICS_PORT: "8081"
+
+  # Detection Service
+  DETECTION_API_PORT: "8001"
+  DETECTION_METRICS_PORT: "8003"
+  DETECTION_WINDOW_MINUTES: "5"
+  ANOMALY_THRESHOLD: "-0.7"
+  CONTAMINATION: "0.05"
+
+  # Reporting Service
+  REPORTING_API_PORT: "8002"
+  REPORTING_METRICS_PORT: "8004"
+  REPORT_GENERATOR_MODE: "mock"  # Change to 'claude' for production
+  CLAUDE_MODEL: "claude-3-5-sonnet-20241022"
+  CLAUDE_MAX_TOKENS: "1500"
+  CLAUDE_TEMPERATURE: "0.3"
+  REPORT_RETENTION_DAYS: "30"
+
+  # Logging
+  LOG_LEVEL: "INFO"

@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: reporting-service
+  namespace: helios-prod
+  labels:
+    app: reporting
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+spec:
+  type: LoadBalancer
+  selector:
+    app: reporting
+  ports:
+    - name: http
+      protocol: TCP
+      port: 8002
+      targetPort: 8002
+    - name: metrics
+      protocol: TCP
+      port: 8004
+      targetPort: 8004

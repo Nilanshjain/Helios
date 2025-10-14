@@ -1,0 +1,122 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: detection
+  namespace: helios-prod
+  labels:
+    app: detection
+    component: ml
+    phase: "2"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: detection
+  template:
+    metadata:
+      labels:
+        app: detection
+        component: ml
+        phase: "2"
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8003"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+        - name: detection
+          image: <AWS_ACCOUNT_ID>.dkr.ecr.<REGION>.amazonaws.com/helios-detection:latest
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8001
+              protocol: TCP
+            - name: metrics
+              containerPort: 8003
+              protocol: TCP
+          env:
+            - name: KAFKA_BROKERS
+              valueFrom:
+                configMapKeyRef:
+                  name: helios-config
+                  key: KAFKA_BROKERS
+            - name: KAFKA_EVENTS_TOPIC
+              valueFrom:
+                configMapKeyRef:
+                  name: helios-config
+                  key: KAFKA_EVENTS_TOPIC
+            - name: KAFKA_ALERTS_TOPIC
+              valueFrom:
+                configMapKeyRef:
+                  name: helios-config
+                  key: KAFKA_ALERTS_TOPIC
+            - name: DB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: helios-config
+                  key: DB_HOST
+            - name: DB_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: helios-config
+                  key: DB_PORT
+            - name: DB_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: helios-config
+                  key: DB_NAME
+            - name: DB_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: helios-config
+                  key: DB_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: helios-secrets
+                  key: DB_PASSWORD
+            - name: DETECTION_WINDOW_MINUTES
+              valueFrom:
+                configMapKeyRef:
+                  name: helios-config
+                  key: DETECTION_WINDOW_MINUTES
+            - name: ANOMALY_THRESHOLD
+              valueFrom:
+                configMapKeyRef:
+                  name: helios-config
+                  key: ANOMALY_THRESHOLD
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: helios-config
+                  key: LOG_LEVEL
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              cpu: 2000m
+              memory: 2Gi
+          volumeMounts:
+            - name: models
+              mountPath: /app/models
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8001
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8001
+            initialDelaySeconds: 30
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+      volumes:
+        - name: models
+          emptyDir: {}
+      restartPolicy: Always
