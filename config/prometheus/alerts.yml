@@ -1,0 +1,131 @@
+groups:
+  - name: helios_ingestion_alerts
+    interval: 30s
+    rules:
+      # High error rate in ingestion
+      - alert: HighIngestionErrorRate
+        expr: rate(helios_ingestion_errors_total[5m]) > 10
+        for: 2m
+        labels:
+          severity: warning
+          service: ingestion
+        annotations:
+          summary: "High error rate in ingestion service"
+          description: "Ingestion service error rate is {{ $value }} errors/sec (threshold: 10)"
+
+      # High latency in ingestion
+      - alert: HighIngestionLatency
+        expr: histogram_quantile(0.99, rate(helios_ingestion_latency_seconds_bucket[5m])) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          service: ingestion
+        annotations:
+          summary: "High P99 latency in ingestion service"
+          description: "Ingestion P99 latency is {{ $value }}s (threshold: 0.1s)"
+
+      # Ingestion service down
+      - alert: IngestionServiceDown
+        expr: up{job="helios-ingestion"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: ingestion
+        annotations:
+          summary: "Ingestion service is down"
+          description: "Ingestion service has been down for more than 1 minute"
+
+  - name: helios_detection_alerts
+    interval: 30s
+    rules:
+      # Too many anomalies detected (possible false positives)
+      - alert: HighAnomalyRate
+        expr: rate(helios_detection_anomalies_total[10m]) > 5
+        for: 10m
+        labels:
+          severity: warning
+          service: detection
+        annotations:
+          summary: "Very high anomaly detection rate"
+          description: "Detecting {{ $value }} anomalies/sec. Possible false positives or major incident."
+
+      # Detection service down
+      - alert: DetectionServiceDown
+        expr: up{job="helios-detection"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: detection
+        annotations:
+          summary: "Detection service is down"
+          description: "Detection service has been down for more than 1 minute"
+
+      # ML model inference too slow
+      - alert: SlowMLInference
+        expr: histogram_quantile(0.95, rate(helios_detection_inference_duration_seconds_bucket[5m])) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+          service: detection
+        annotations:
+          summary: "ML inference is slow"
+          description: "P95 inference time is {{ $value }}s (threshold: 0.5s)"
+
+  - name: helios_reporting_alerts
+    interval: 30s
+    rules:
+      # High Claude API costs
+      - alert: HighClaudeAPICost
+        expr: increase(helios_reporting_claude_cost_usd_total[1d]) > 5
+        for: 10m
+        labels:
+          severity: warning
+          service: reporting
+        annotations:
+          summary: "High Claude API costs detected"
+          description: "Daily Claude API cost is ${{ $value }} (threshold: $5)"
+
+      # Report generation failures
+      - alert: ReportGenerationFailures
+        expr: rate(helios_reporting_errors_total[5m]) > 1
+        for: 5m
+        labels:
+          severity: warning
+          service: reporting
+        annotations:
+          summary: "Report generation failures"
+          description: "Report generation failing at {{ $value }} errors/sec"
+
+      # Reporting service down
+      - alert: ReportingServiceDown
+        expr: up{job="helios-reporting"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: reporting
+        annotations:
+          summary: "Reporting service is down"
+          description: "Reporting service has been down for more than 1 minute"
+
+  - name: helios_system_alerts
+    interval: 30s
+    rules:
+      # High memory usage
+      - alert: HighMemoryUsage
+        expr: (container_memory_usage_bytes / container_spec_memory_limit_bytes) > 0.9
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage in {{ $labels.container_name }}"
+          description: "Memory usage is {{ $value | humanizePercentage }}"
+
+      # High CPU usage
+      - alert: HighCPUUsage
+        expr: rate(container_cpu_usage_seconds_total[5m]) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage in {{ $labels.container_name }}"
+          description: "CPU usage is {{ $value | humanizePercentage }}"

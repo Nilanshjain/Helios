@@ -5,6 +5,17 @@ global:
     cluster: 'helios-local'
     environment: 'development'
 
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - alertmanager:9093
+
+# Load rules once and periodically evaluate them
+rule_files:
+  - 'alerts.yml'
+
 scrape_configs:
   # Prometheus self-monitoring
   - job_name: 'prometheus'
@@ -35,7 +46,18 @@ scrape_configs:
   - job_name: 'helios-detection'
     metrics_path: '/metrics'
     static_configs:
-      - targets: ['detection:8000']
+      - targets: ['detection:8001']
         labels:
           service: 'detection'
           component: 'ml'
+          phase: '2'
+
+  # Helios Reporting Service (GenAI)
+  - job_name: 'helios-reporting'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['reporting:8003']
+        labels:
+          service: 'reporting'
+          component: 'genai'
+          phase: '3'

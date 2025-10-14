@@ -1,0 +1,74 @@
+global:
+  resolve_timeout: 5m
+  # Slack webhook URL (optional - set via environment variable)
+  slack_api_url: '${SLACK_WEBHOOK_URL}'
+
+# Templates for notifications
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'
+
+# Route tree for alerts
+route:
+  group_by: ['alertname', 'cluster', 'service']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 12h
+  receiver: 'default'
+
+  # Child routes
+  routes:
+    # Critical alerts - notify immediately
+    - match:
+        severity: critical
+      receiver: 'critical'
+      group_wait: 0s
+      repeat_interval: 1h
+
+    # Warning alerts - can wait a bit
+    - match:
+        severity: warning
+      receiver: 'warning'
+      group_wait: 30s
+      repeat_interval: 4h
+
+# Receivers
+receivers:
+  - name: 'default'
+    # Log to console (for docker-compose)
+    webhook_configs:
+      - url: 'http://localhost:9093/debug'
+        send_resolved: true
+
+  - name: 'critical'
+    # Slack notifications for critical alerts
+    slack_configs:
+      - channel: '#helios-alerts'
+        title: '🚨 CRITICAL: {{ .GroupLabels.alertname }}'
+        text: >-
+          *Summary:* {{ .CommonAnnotations.summary }}
+          *Description:* {{ .CommonAnnotations.description }}
+          *Service:* {{ .GroupLabels.service }}
+          *Severity:* {{ .GroupLabels.severity }}
+        send_resolved: true
+        color: 'danger'
+
+  - name: 'warning'
+    # Slack notifications for warnings
+    slack_configs:
+      - channel: '#helios-alerts'
+        title: '⚠️  WARNING: {{ .GroupLabels.alertname }}'
+        text: >-
+          *Summary:* {{ .CommonAnnotations.summary }}
+          *Description:* {{ .CommonAnnotations.description }}
+          *Service:* {{ .GroupLabels.service }}
+        send_resolved: true
+        color: 'warning'
+
+# Inhibition rules (suppress some alerts when others fire)
+inhibit_rules:
+  # Suppress warnings if critical alert is firing for same service
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['service']
