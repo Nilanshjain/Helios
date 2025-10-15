@@ -5,10 +5,9 @@
 .cursor/
 .aider*
 
-# Markdown files (except README.md and specific docs)
+# Markdown files (except README.md)
 *.md
 !README.md
-!PROJECT_PLAN.md
 
 # Go specific
 *.exe
