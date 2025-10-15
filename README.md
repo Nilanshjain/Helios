@@ -141,7 +141,7 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 **Nilansh Jain**
 📧 nilanshjain0306@gmail.com
-🔗 [GitHub](https://github.com/Nilanshjain) • [LinkedIn](https://linkedin.com/in/nilansh-jain)
+🔗 [GitHub](https://github.com/Nilanshjain) 
 
 ---
 
