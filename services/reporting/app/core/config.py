@@ -33,11 +33,6 @@ class Settings(BaseSettings):
     reports_storage_path: str = "./reports"
     reports_retention_days: int = 30
 
-    # Slack
-    slack_webhook_url: str = ""
-    slack_enabled: bool = False
-    slack_channel: str = "#incidents"
-
     # API
     api_host: str = "0.0.0.0"
     api_port: int = 8002

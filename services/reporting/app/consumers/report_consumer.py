@@ -47,7 +47,6 @@ class ReportConsumer:
     2. Fetch context from database
     3. Generate report using Claude/Mock
     4. Store report to filesystem + database
-    5. Send Slack notification
     """
 
     def __init__(self) -> None:
