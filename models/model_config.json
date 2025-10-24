@@ -1,0 +1,40 @@
+{
+  "model_type": "IsolationForest",
+  "training_date": "2025-10-22T20:56:01.475384",
+  "training_samples": 2016,
+  "features": [
+    "event_count",
+    "error_rate",
+    "p50_latency_ms",
+    "p95_latency_ms",
+    "p99_latency_ms",
+    "latency_std",
+    "hour_of_day",
+    "p95_p50_ratio",
+    "p99_p95_ratio",
+    "error_count",
+    "log_event_count",
+    "log_error_rate"
+  ],
+  "hyperparameters": {
+    "n_estimators": 100,
+    "max_samples": 256,
+    "contamination": 0.05,
+    "max_features": 1.0,
+    "random_state": 42
+  },
+  "metrics": {
+    "accuracy": 0.9761904761904762,
+    "precision": 0.8415841584158416,
+    "recall": 0.7264957264957265,
+    "f1_score": 0.7798165137614679,
+    "false_positive_rate": 0.00842548709847288,
+    "confusion_matrix": {
+      "tn": 1883,
+      "fp": 16,
+      "fn": 32,
+      "tp": 85
+    },
+    "targets_met": false
+  }
+}
