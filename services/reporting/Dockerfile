@@ -6,6 +6,7 @@ RUN apt-get update && apt-get install -y \
     gcc \
     g++ \
     libpq-dev \
+    libsnappy-dev \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -22,26 +23,26 @@ FROM python:3.11-slim
 # Install runtime dependencies
 RUN apt-get update && apt-get install -y \
     libpq5 \
+    libsnappy1v5 \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Copy Python packages from builder
-COPY --from=builder /root/.local /root/.local
+# Run as non-root user - create user first
+RUN addgroup --gid 1000 helios && \
+    adduser --disabled-password --gecos '' --uid 1000 --gid 1000 helios
+
+# Copy Python packages from builder to helios user location
+COPY --from=builder --chown=helios:helios /root/.local /home/helios/.local
 
 # Make sure scripts in .local are usable
-ENV PATH=/root/.local/bin:$PATH
+ENV PATH=/home/helios/.local/bin:$PATH
 
 # Copy application code
-COPY app/ ./app/
+COPY --chown=helios:helios app/ ./app/
 
 # Create reports directory
-RUN mkdir -p /app/reports
-
-# Run as non-root user
-RUN addgroup --gid 1000 helios && \
-    adduser --disabled-password --gecos '' --uid 1000 --gid 1000 helios && \
-    chown -R helios:helios /app
+RUN mkdir -p /app/reports && chown -R helios:helios /app
 
 USER helios
 

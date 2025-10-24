@@ -2,7 +2,6 @@
 
 import json
 from kafka import KafkaConsumer
-from prometheus_client import Counter, Histogram
 
 from app.core.config import settings
 from app.core.logging import get_logger
@@ -12,30 +11,14 @@ from app.generators.mock_generator import MockGenerator
 from app.generators.base import ReportContext
 from app.storage.filesystem import FileSystemStorage
 from app.storage.database import DatabaseStorage
+from app.consumers.metrics import (
+    reports_generated,
+    report_generation_latency,
+    claude_tokens_used,
+    claude_cost_usd,
+)
 
 logger = get_logger(__name__)
-
-# Prometheus metrics
-reports_generated = Counter(
-    "helios_reports_generated_total",
-    "Total reports generated",
-    ["service", "severity", "generator"],
-)
-
-report_generation_latency = Histogram(
-    "helios_report_generation_latency_seconds",
-    "Report generation time",
-)
-
-claude_tokens_used = Counter(
-    "helios_claude_tokens_used_total",
-    "Total Claude tokens consumed",
-)
-
-claude_cost_usd = Counter(
-    "helios_claude_cost_usd_total",
-    "Total Claude API cost in USD",
-)
 
 
 class ReportConsumer:

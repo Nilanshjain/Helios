@@ -297,7 +297,7 @@ func (sw *StorageWriter) writeBatch(events []*models.Event) {
 	log.Info().
 		Int("batch_size", len(events)).
 		Int("success_count", successCount).
-		Float64("latency_ms", time.Since(startTime).Milliseconds()).
+		Float64("latency_ms", float64(time.Since(startTime).Milliseconds())).
 		Msg("Batch written to database")
 }
 

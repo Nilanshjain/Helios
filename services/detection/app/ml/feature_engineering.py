@@ -23,13 +23,18 @@ class FeatureExtractor:
     """
 
     FEATURE_NAMES = [
-        "total_events",
+        "event_count",
         "error_rate",
-        "avg_latency",
-        "p95_latency",
-        "p99_latency",
-        "latency_stddev",
-        "unique_endpoints",
+        "p50_latency_ms",
+        "p95_latency_ms",
+        "p99_latency_ms",
+        "latency_std",
+        "hour_of_day",
+        "p95_p50_ratio",
+        "p99_p95_ratio",
+        "error_count",
+        "log_event_count",
+        "log_error_rate",
     ]
 
     def __init__(self, min_events: int = 10) -> None:
@@ -69,46 +74,60 @@ class FeatureExtractor:
 
     def _extract_from_dataframe(self, df: pd.DataFrame) -> List[float]:
         """Extract features from DataFrame"""
+        from datetime import datetime
 
         # Basic counts
-        total_events = len(df)
+        event_count = len(df)
         error_events = df[df["level"].isin(["ERROR", "CRITICAL"])].shape[0]
-        error_rate = error_events / total_events if total_events > 0 else 0.0
+        error_rate = error_events / event_count if event_count > 0 else 0.0
 
         # Extract latency values from metadata
         latencies = self._extract_latencies(df)
 
         # Latency features
         if len(latencies) > 0:
-            avg_latency = np.mean(latencies)
-            p95_latency = np.percentile(latencies, 95)
-            p99_latency = np.percentile(latencies, 99)
-            latency_stddev = np.std(latencies)
+            p50_latency_ms = np.percentile(latencies, 50)
+            p95_latency_ms = np.percentile(latencies, 95)
+            p99_latency_ms = np.percentile(latencies, 99)
+            latency_std = np.std(latencies)
         else:
-            avg_latency = 0.0
-            p95_latency = 0.0
-            p99_latency = 0.0
-            latency_stddev = 0.0
+            p50_latency_ms = 0.0
+            p95_latency_ms = 0.0
+            p99_latency_ms = 0.0
+            latency_std = 0.0
 
-        # Endpoint diversity
-        unique_endpoints = self._count_unique_endpoints(df)
+        # Hour of day (time-based feature)
+        hour_of_day = datetime.now().hour
+
+        # Engineered features
+        p95_p50_ratio = p95_latency_ms / (p50_latency_ms + 1)
+        p99_p95_ratio = p99_latency_ms / (p95_latency_ms + 1)
+        error_count = event_count * error_rate
+        log_event_count = np.log1p(event_count)
+        log_error_rate = np.log1p(error_rate * 1000)
 
         features = [
-            float(total_events),
+            float(event_count),
             float(error_rate),
-            float(avg_latency),
-            float(p95_latency),
-            float(p99_latency),
-            float(latency_stddev),
-            float(unique_endpoints),
+            float(p50_latency_ms),
+            float(p95_latency_ms),
+            float(p99_latency_ms),
+            float(latency_std),
+            float(hour_of_day),
+            float(p95_p50_ratio),
+            float(p99_p95_ratio),
+            float(error_count),
+            float(log_event_count),
+            float(log_error_rate),
         ]
 
         logger.debug(
             "features_extracted",
-            total_events=total_events,
+            event_count=event_count,
             error_rate=error_rate,
-            avg_latency=avg_latency,
-            unique_endpoints=unique_endpoints,
+            p50_latency_ms=p50_latency_ms,
+            p95_latency_ms=p95_latency_ms,
+            hour_of_day=hour_of_day,
         )
 
         return features

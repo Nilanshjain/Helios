@@ -12,33 +12,14 @@ from app.core.logging import get_logger
 from app.core.config import settings
 from app.core.database import db
 from app.ml.anomaly_detector import AnomalyDetector
-from prometheus_client import Counter, Histogram, Gauge
+from app.consumers.metrics import (
+    events_processed,
+    anomalies_detected,
+    detection_latency,
+    window_size_gauge,
+)
 
 logger = get_logger(__name__)
-
-# Prometheus metrics
-events_processed = Counter(
-    "helios_detection_events_processed_total",
-    "Total events processed",
-    ["service", "status"],
-)
-
-anomalies_detected = Counter(
-    "helios_anomalies_detected_total",
-    "Total anomalies detected",
-    ["service", "severity"],
-)
-
-detection_latency = Histogram(
-    "helios_detection_latency_seconds",
-    "Detection latency in seconds",
-)
-
-window_size_gauge = Gauge(
-    "helios_detection_window_size",
-    "Current window size",
-    ["service"],
-)
 
 
 class DetectionConsumer:
@@ -129,7 +110,7 @@ class DetectionConsumer:
             events_processed.labels(service=service, status="success").inc()
 
         except Exception as e:
-            logger.error("event_processing_error", error=str(e), event=event)
+            logger.error("event_processing_error", error=str(e), event_data=str(event))
             events_processed.labels(service=event.get("service", "unknown"), status="error").inc()
         finally:
             detection_latency.observe(time.time() - start_time)

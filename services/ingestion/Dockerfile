@@ -6,18 +6,21 @@ RUN apk add --no-cache git ca-certificates
 
 WORKDIR /app
 
-# Copy go mod files
-COPY go.mod go.sum ./
-
-# Download dependencies
-RUN go mod download
-
-# Copy source code
+# Copy everything
 COPY . .
 
-# Build both binaries
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o ingestion main.go
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o consumer consumer.go
+# Download dependencies and verify them (creates proper go.sum)
+RUN go get -d -v ./...
+
+# Build ingestion binary - temporarily hide consumer.go to avoid conflict
+RUN mv consumer.go consumer.go.tmp && \
+    CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o ingestion . && \
+    mv consumer.go.tmp consumer.go
+
+# Build consumer binary - temporarily hide main.go to avoid conflict
+RUN mv main.go main.go.tmp && \
+    CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o consumer . && \
+    mv main.go.tmp main.go
 
 # Runtime stage
 FROM alpine:latest

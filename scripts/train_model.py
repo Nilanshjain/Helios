@@ -336,24 +336,24 @@ def evaluate_model(y_true, y_pred):
     targets_met = []
 
     if precision >= 0.95:
-        print(f"  ✓ Precision target met: {precision*100:.2f}% >= 95.0%")
+        print(f"  [OK] Precision target met: {precision*100:.2f}% >= 95.0%")
         targets_met.append(True)
     else:
-        print(f"  ✗ Precision target not met: {precision*100:.2f}% < 95.0%")
+        print(f"  [MISS] Precision target not met: {precision*100:.2f}% < 95.0%")
         targets_met.append(False)
 
     if recall >= 0.85:
-        print(f"  ✓ Recall target met: {recall*100:.2f}% >= 85.0%")
+        print(f"  [OK] Recall target met: {recall*100:.2f}% >= 85.0%")
         targets_met.append(True)
     else:
-        print(f"  ✗ Recall target not met: {recall*100:.2f}% < 85.0%")
+        print(f"  [MISS] Recall target not met: {recall*100:.2f}% < 85.0%")
         targets_met.append(False)
 
     if fpr <= 0.15:
-        print(f"  ✓ FPR target met: {fpr*100:.2f}% <= 15.0%")
+        print(f"  [OK] FPR target met: {fpr*100:.2f}% <= 15.0%")
         targets_met.append(True)
     else:
-        print(f"  ✗ FPR target not met: {fpr*100:.2f}% > 15.0%")
+        print(f"  [MISS] FPR target not met: {fpr*100:.2f}% > 15.0%")
         targets_met.append(False)
 
     print("="*60)
@@ -424,10 +424,21 @@ def main():
     # Evaluate
     metrics = evaluate_model(y, y_pred)
 
-    # Save model and scaler
+    # Save model in format expected by AnomalyDetector
     model_file = output_path / 'isolation_forest.pkl'
+    model_data = {
+        "model": trainer.model,
+        "scaler": trainer.scaler,
+        "threshold": -0.5,  # Default threshold for Isolation Forest
+        "feature_names": list(X.columns),
+    }
+    print(f"\nSaving complete model to {model_file}")
+    joblib.dump(model_data, model_file)
+
+    # Also save individual files for backwards compatibility
     scaler_file = output_path / 'scaler.pkl'
-    trainer.save(model_file, scaler_file)
+    print(f"Saving scaler to {scaler_file}")
+    joblib.dump(trainer.scaler, scaler_file)
 
     # Save metrics
     metrics_file = output_path / 'training_metrics.json'
@@ -459,9 +470,9 @@ def main():
     print(f"  - {config_file.name}")
 
     if metrics['targets_met']:
-        print("\n✓ All target metrics achieved!")
+        print("\n[SUCCESS] All target metrics achieved!")
     else:
-        print("\n⚠ Some target metrics not achieved. Consider:")
+        print("\n[WARNING] Some target metrics not achieved. Consider:")
         print("  - Running with --grid-search for hyperparameter optimization")
         print("  - Increasing training data (--days 14)")
         print("  - Adjusting anomaly rate (--anomaly-rate 0.05)")

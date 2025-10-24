@@ -8,6 +8,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     g++ \
+    libsnappy-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements
@@ -21,17 +22,26 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Copy Python dependencies from builder
-COPY --from=builder /root/.local /root/.local
+# Install runtime dependencies for snappy
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libsnappy1v5 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Run as non-root user - create user first
+RUN addgroup --gid 1000 helios && \
+    adduser --disabled-password --gecos '' --uid 1000 --gid 1000 helios
+
+# Copy Python dependencies from builder to helios user location
+COPY --from=builder --chown=helios:helios /root/.local /home/helios/.local
 
 # Make sure scripts in .local are usable
-ENV PATH=/root/.local/bin:$PATH
+ENV PATH=/home/helios/.local/bin:$PATH
 
 # Copy application code
-COPY . .
+COPY --chown=helios:helios . .
 
 # Create directory for ML models
-RUN mkdir -p /app/models
+RUN mkdir -p /app/models && chown -R helios:helios /app
 
 # Expose ports
 EXPOSE 8000
@@ -39,11 +49,6 @@ EXPOSE 8000
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
   CMD python -c "import requests; requests.get('http://localhost:8000/health')" || exit 1
-
-# Run as non-root user
-RUN addgroup --gid 1000 helios && \
-    adduser --disabled-password --gecos '' --uid 1000 --gid 1000 helios && \
-    chown -R helios:helios /app
 
 USER helios
 

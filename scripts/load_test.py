@@ -245,7 +245,7 @@ async def print_progress(
 
         elapsed = current_time - results.start_time
 
-        print(f"\n📊 Progress (t={elapsed:.1f}s):")
+        print(f"\n[PROGRESS] (t={elapsed:.1f}s):")
         print(f"   Requests: {current_requests:,} ({current_rps:.0f} req/s)")
         print(f"   Events: {results.total_events:,} ({current_eps:.0f} events/s)")
         print(f"   Success Rate: {results.success_rate:.2f}%")
@@ -262,7 +262,7 @@ async def run_load_test(config: LoadTestConfig) -> LoadTestResults:
     results = LoadTestResults()
 
     print("\n" + "="*70)
-    print("🚀 HELIOS LOAD TEST")
+    print("HELIOS LOAD TEST")
     print("="*70)
     print(f"\nConfiguration:")
     print(f"  URL: {config.url}")
@@ -279,7 +279,7 @@ async def run_load_test(config: LoadTestConfig) -> LoadTestResults:
     async with aiohttp.ClientSession(connector=connector) as session:
         # Warmup phase
         if config.warmup_duration > 0:
-            print(f"🔥 Warming up for {config.warmup_duration} seconds...")
+            print(f"[WARMUP] Warming up for {config.warmup_duration} seconds...")
             warmup_stop = asyncio.Event()
             warmup_results = LoadTestResults()
             warmup_results.start_time = time.time()
@@ -292,11 +292,11 @@ async def run_load_test(config: LoadTestConfig) -> LoadTestResults:
             await asyncio.sleep(config.warmup_duration)
             warmup_stop.set()
             await asyncio.gather(*warmup_tasks)
-            print(f"✅ Warmup complete ({warmup_results.total_requests} requests)")
+            print(f"[OK] Warmup complete ({warmup_results.total_requests} requests)")
             print()
 
         # Main load test
-        print(f"⚡ Starting load test for {config.duration} seconds...")
+        print(f"[START] Starting load test for {config.duration} seconds...")
         print()
 
         stop_event = asyncio.Event()
@@ -327,50 +327,50 @@ async def run_load_test(config: LoadTestConfig) -> LoadTestResults:
 def print_results(results: LoadTestResults, config: LoadTestConfig) -> None:
     """Print final test results"""
     print("\n" + "="*70)
-    print("📈 LOAD TEST RESULTS")
+    print("[RESULTS] LOAD TEST RESULTS")
     print("="*70)
 
-    print(f"\n⏱️  Duration: {results.duration:.2f}s")
+    print(f"\n[TIME] Duration: {results.duration:.2f}s")
 
-    print(f"\n📊 Request Statistics:")
+    print(f"\n[STATS] Request Statistics:")
     print(f"  Total Requests: {results.total_requests:,}")
     print(f"  Successful: {results.successful_requests:,}")
     print(f"  Failed: {results.failed_requests:,}")
     print(f"  Success Rate: {results.success_rate:.2f}%")
     print(f"  Actual RPS: {results.actual_rps:,.0f}")
 
-    print(f"\n📦 Event Statistics:")
+    print(f"\n[EVENTS] Event Statistics:")
     print(f"  Total Events: {results.total_events:,}")
     print(f"  Events/Sec: {results.actual_eps:,.0f}")
 
-    print(f"\n⚡ Latency Statistics:")
+    print(f"\n[LATENCY] Latency Statistics:")
     print(f"  Average: {results.avg_latency*1000:.2f}ms")
     print(f"  P50: {results.p50_latency*1000:.2f}ms")
     print(f"  P95: {results.p95_latency*1000:.2f}ms")
     print(f"  P99: {results.p99_latency*1000:.2f}ms")
 
     if results.errors:
-        print(f"\n❌ Errors:")
+        print(f"\n[ERRORS] Errors:")
         for error_type, count in sorted(results.errors.items(), key=lambda x: x[1], reverse=True):
             print(f"  {error_type}: {count:,}")
 
-    print(f"\n🎯 Performance Assessment:")
+    print(f"\n[ASSESSMENT] Performance Assessment:")
     target_eps = config.target_rps * config.batch_size
 
     if results.actual_eps >= target_eps * 0.95:
-        print(f"  ✅ PASS - Achieved {results.actual_eps:.0f} events/sec (target: {target_eps:,})")
+        print(f"  [PASS] Achieved {results.actual_eps:.0f} events/sec (target: {target_eps:,})")
     else:
-        print(f"  ❌ FAIL - Only achieved {results.actual_eps:.0f} events/sec (target: {target_eps:,})")
+        print(f"  [FAIL] Only achieved {results.actual_eps:.0f} events/sec (target: {target_eps:,})")
 
     if results.p99_latency <= 0.050:  # 50ms
-        print(f"  ✅ PASS - P99 latency is {results.p99_latency*1000:.2f}ms (target: <50ms)")
+        print(f"  [PASS] P99 latency is {results.p99_latency*1000:.2f}ms (target: <50ms)")
     else:
-        print(f"  ⚠️  WARN - P99 latency is {results.p99_latency*1000:.2f}ms (target: <50ms)")
+        print(f"  [WARN] P99 latency is {results.p99_latency*1000:.2f}ms (target: <50ms)")
 
     if results.success_rate >= 99:
-        print(f"  ✅ PASS - Success rate is {results.success_rate:.2f}% (target: >99%)")
+        print(f"  [PASS] Success rate is {results.success_rate:.2f}% (target: >99%)")
     else:
-        print(f"  ❌ FAIL - Success rate is {results.success_rate:.2f}% (target: >99%)")
+        print(f"  [FAIL] Success rate is {results.success_rate:.2f}% (target: >99%)")
 
     print("\n" + "="*70)
 
