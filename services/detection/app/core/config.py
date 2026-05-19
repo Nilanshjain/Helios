@@ -7,7 +7,12 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     """Application settings loaded from environment variables"""
 
-    model_config = SettingsConfigDict(env_file=".env", case_sensitive=False)
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        case_sensitive=False,
+        extra="ignore",  # Ignore extra fields like anthropic_api_key
+        protected_namespaces=('settings_',)  # Fix model_ namespace warning
+    )
 
     # Kafka Configuration
     kafka_brokers: str = "localhost:9092"

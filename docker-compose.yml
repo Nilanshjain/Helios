@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # Zookeeper for Kafka
   zookeeper:
@@ -117,7 +115,7 @@ services:
       - prometheus
       - timescaledb
     ports:
-      - "3000:3000"
+      - "3100:3000"  # Changed to 3100 to avoid port conflict
     environment:
       GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD: admin
@@ -183,8 +181,8 @@ services:
       DB_PASSWORD: postgres
       MODEL_PATH: /app/models/isolation_forest.pkl
       CONTAMINATION: 0.05
-      ANOMALY_THRESHOLD: -0.7
-      WINDOW_SIZE_MINUTES: 5
+      ANOMALY_THRESHOLD: -0.4
+      WINDOW_SIZE_MINUTES: 1
       MIN_EVENTS_PER_WINDOW: 10
       API_HOST: 0.0.0.0
       API_PORT: 8000
@@ -223,13 +221,15 @@ services:
       DB_PASSWORD: postgres
       MODEL_PATH: /app/models/isolation_forest.pkl
       CONTAMINATION: 0.05
-      ANOMALY_THRESHOLD: -0.7
-      WINDOW_SIZE_MINUTES: 5
-      MIN_EVENTS_PER_WINDOW: 10
+      ANOMALY_THRESHOLD: -0.16
+      WINDOW_SIZE_MINUTES: 1
+      MIN_EVENTS_PER_WINDOW: 3
       LOG_LEVEL: INFO
     volumes:
       - detection-models:/app/models
     command: ["python", "-m", "app.consumers.detection_consumer"]
+    healthcheck:
+      disable: true
     networks:
       - helios-network
     restart: unless-stopped
@@ -258,6 +258,8 @@ services:
       BATCH_SIZE: 100
       BATCH_TIMEOUT_MS: 1000
     command: ["./consumer"]  # Run consumer binary instead of API
+    healthcheck:
+      disable: true
     networks:
       - helios-network
     restart: unless-stopped
@@ -279,7 +281,7 @@ services:
       - "8003:8003"  # Metrics endpoint
     environment:
       # Report Generator
-      REPORT_GENERATOR_MODE: mock  # Change to 'claude' for production with API key
+      REPORT_GENERATOR_MODE: claude  # AI-powered reports with Claude
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       CLAUDE_MODEL: claude-3-5-sonnet-20241022
       CLAUDE_MAX_TOKENS: 1500
@@ -300,11 +302,8 @@ services:
       METRICS_PORT: 8003
       LOG_LEVEL: INFO
       # Storage
-      REPORTS_DIR: /app/reports
-      REPORT_RETENTION_DAYS: 30
-      # Notifications
-      SLACK_ENABLED: ${SLACK_ENABLED:-false}
-      SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}
+      REPORTS_STORAGE_PATH: /app/reports
+      REPORTS_RETENTION_DAYS: 30
     volumes:
       - reporting-data:/app/reports
     command: ["python", "-m", "app.main"]
@@ -328,7 +327,7 @@ services:
         condition: service_started
     environment:
       # Report Generator
-      REPORT_GENERATOR_MODE: mock
+      REPORT_GENERATOR_MODE: claude
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       CLAUDE_MODEL: claude-3-5-sonnet-20241022
       CLAUDE_MAX_TOKENS: 1500
@@ -344,15 +343,14 @@ services:
       DB_USER: postgres
       DB_PASSWORD: postgres
       # Storage
-      REPORTS_DIR: /app/reports
-      REPORT_RETENTION_DAYS: 30
-      # Notifications
-      SLACK_ENABLED: ${SLACK_ENABLED:-false}
-      SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}
+      REPORTS_STORAGE_PATH: /app/reports
+      REPORTS_RETENTION_DAYS: 30
       LOG_LEVEL: INFO
     volumes:
       - reporting-data:/app/reports
     command: ["python", "-m", "app.consumers.report_consumer"]
+    healthcheck:
+      disable: true
     networks:
       - helios-network
     restart: unless-stopped
@@ -373,41 +371,6 @@ services:
       - helios-network
     restart: unless-stopped
 
-  # LocalStack - AWS Cloud Emulator (Cost-Free Testing)
-  localstack:
-    image: localstack/localstack:latest
-    container_name: helios-localstack
-    ports:
-      - "4566:4566"            # LocalStack Gateway
-      - "4510-4559:4510-4559"  # External services port range
-    environment:
-      # Core Configuration
-      SERVICES: s3,lambda,iam,sts,cloudwatch,logs,events
-      DEBUG: 1
-      DATA_DIR: /tmp/localstack/data
-      LAMBDA_EXECUTOR: local
-      DOCKER_HOST: unix:///var/run/docker.sock
-      # AWS Configuration
-      AWS_DEFAULT_REGION: us-east-1
-      AWS_ACCESS_KEY_ID: test
-      AWS_SECRET_ACCESS_KEY: test
-      # Feature Flags
-      DISABLE_CORS_CHECKS: 1
-      DISABLE_CUSTOM_CORS_S3: 1
-      PERSISTENCE: 1
-    volumes:
-      - "./config/localstack:/etc/localstack/init/ready.d"
-      - localstack-data:/tmp/localstack
-      - "/var/run/docker.sock:/var/run/docker.sock"
-    networks:
-      - helios-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    restart: unless-stopped
-
 networks:
   helios-network:
     driver: bridge
@@ -426,5 +389,3 @@ volumes:
     name: helios-reporting-data
   alertmanager-data:
     name: helios-alertmanager-data
-  localstack-data:
-    name: helios-localstack-data

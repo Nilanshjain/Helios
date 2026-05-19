@@ -45,6 +45,8 @@ class DetectionConsumer:
             auto_offset_reset="latest",
             enable_auto_commit=True,
             auto_commit_interval_ms=5000,
+            consumer_timeout_ms=1000,  # Timeout after 1s to prevent blocking forever
+            max_poll_records=500,  # Process up to 500 records per poll
         )
 
         # Kafka producer for alerts
@@ -72,9 +74,51 @@ class DetectionConsumer:
         # Load model
         self.load_model()
 
+        logger.info("triggering_consumer_group_coordination")
+
+        # CRITICAL: First poll() triggers group coordination and blocks indefinitely.
+        # Do a warmup poll to complete coordination before entering main loop.
+        _ = self.consumer.poll(timeout_ms=100, max_records=1)
+
+        logger.info("consumer_ready_entering_main_loop")
+
+        poll_count = 0
         try:
-            for message in self.consumer:
-                self._process_event(message.value)
+            while True:
+                poll_count += 1
+
+                # Log BEFORE poll to prove loop is executing
+                if poll_count % 5 == 0:
+                    logger.info("about_to_poll", poll_count=poll_count)
+
+                # Poll for messages with timeout
+                messages = self.consumer.poll(timeout_ms=1000, max_records=500)
+
+                # Log AFTER poll
+                if poll_count % 5 == 0:
+                    logger.info(
+                        "poll_completed",
+                        poll_count=poll_count,
+                        has_messages=bool(messages),
+                        partition_count=len(messages) if messages else 0,
+                    )
+
+                if messages:
+                    total_records = sum(len(records) for records in messages.values())
+                    logger.info(
+                        "poll_received_messages",
+                        partitions=len(messages),
+                        total_records=total_records,
+                    )
+                    for topic_partition, records in messages.items():
+                        logger.debug(
+                            "processing_partition",
+                            partition=topic_partition.partition,
+                            record_count=len(records),
+                        )
+                        for message in records:
+                            self._process_event(message.value)
+
         except KeyboardInterrupt:
             logger.info("shutting_down_consumer")
         except Exception as e:
@@ -119,8 +163,15 @@ class DetectionConsumer:
         """Run anomaly detection for a service"""
         events = list(self.windows[service])
 
+        logger.info(
+            "running_detection_for_service",
+            service=service,
+            window_size=len(events),
+            min_required=settings.min_events_per_window,
+        )
+
         if len(events) < settings.min_events_per_window:
-            logger.debug(
+            logger.info(
                 "insufficient_events_for_detection",
                 service=service,
                 n_events=len(events),
@@ -135,7 +186,7 @@ class DetectionConsumer:
             if result["is_anomaly"]:
                 self._handle_anomaly(service, result, events)
 
-            logger.debug(
+            logger.info(
                 "detection_completed",
                 service=service,
                 is_anomaly=result["is_anomaly"],

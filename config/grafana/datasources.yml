@@ -12,19 +12,3 @@ datasources:
       timeInterval: '15s'
       queryTimeout: '60s'
 
-  # TimescaleDB datasource
-  - name: TimescaleDB
-    type: postgres
-    url: timescaledb:5432
-    database: helios
-    user: postgres
-    secureJsonData:
-      password: 'postgres'
-    jsonData:
-      sslmode: 'disable'
-      maxOpenConns: 10
-      maxIdleConns: 5
-      connMaxLifetime: 14400
-      postgresVersion: 1500
-      timescaledb: true
-    editable: true

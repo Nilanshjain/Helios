@@ -18,20 +18,22 @@ class DatabaseStorage:
         anomaly_id: str,
         service: str,
         severity: str,
+        content: str,
         filepath: str,
         tokens_used: int,
         cost_usd: float,
         generation_time_ms: float,
         model: str,
+        pdf_path: Optional[str] = None,
     ) -> None:
         """Save report metadata to database"""
         query = """
             INSERT INTO incident_reports (
-                report_id, anomaly_id, service, severity,
+                report_id, anomaly_id, service, severity, content,
                 filepath, tokens_used, cost_usd, generation_time_ms,
-                model, generated_at
+                model, pdf_path, generated_at
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
 
         try:
@@ -43,11 +45,13 @@ class DatabaseStorage:
                         anomaly_id,
                         service,
                         severity,
+                        content,
                         filepath,
                         tokens_used,
                         cost_usd,
                         generation_time_ms,
                         model,
+                        pdf_path,
                         datetime.now(),
                     ),
                 )

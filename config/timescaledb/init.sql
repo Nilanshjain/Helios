@@ -91,15 +91,21 @@ COMMENT ON TABLE anomalies IS 'ML-detected anomalies with severity and confidenc
 -- ============================================================================
 
 CREATE TABLE IF NOT EXISTS incident_reports (
-    id            SERIAL PRIMARY KEY,
-    report_id     TEXT UNIQUE NOT NULL,
-    anomaly_id    TEXT NOT NULL,
-    service       TEXT NOT NULL,
-    severity      TEXT NOT NULL,
-    content       TEXT NOT NULL,
-    s3_location   TEXT,
-    generated_at  TIMESTAMPTZ NOT NULL,
-    created_at    TIMESTAMPTZ DEFAULT NOW()
+    id                  SERIAL PRIMARY KEY,
+    report_id           TEXT UNIQUE NOT NULL,
+    anomaly_id          TEXT NOT NULL,
+    service             TEXT NOT NULL,
+    severity            TEXT NOT NULL,
+    content             TEXT NOT NULL,
+    filepath            TEXT,
+    pdf_path            TEXT,
+    tokens_used         INTEGER DEFAULT 0,
+    cost_usd            DOUBLE PRECISION DEFAULT 0.0,
+    generation_time_ms  DOUBLE PRECISION DEFAULT 0.0,
+    model               TEXT,
+    s3_location         TEXT,
+    generated_at        TIMESTAMPTZ NOT NULL,
+    created_at          TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_reports_anomaly_id

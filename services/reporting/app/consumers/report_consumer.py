@@ -11,6 +11,7 @@ from app.generators.mock_generator import MockGenerator
 from app.generators.base import ReportContext
 from app.storage.filesystem import FileSystemStorage
 from app.storage.database import DatabaseStorage
+from app.utils.pdf_generator import PDFGenerator
 from app.consumers.metrics import (
     reports_generated,
     report_generation_latency,
@@ -55,6 +56,9 @@ class ReportConsumer:
         self.file_storage = FileSystemStorage()
         self.db_storage = DatabaseStorage()
 
+        # Initialize PDF generator
+        self.pdf_generator = PDFGenerator()
+
         logger.info("report_consumer_initialized")
 
     def start(self) -> None:
@@ -98,17 +102,40 @@ class ReportConsumer:
                 report.report_id, report.content, report.format
             )
 
+            # Generate PDF version
+            pdf_path = None
+            try:
+                pdf_filepath = filepath.replace('.markdown', '.pdf')
+                self.pdf_generator.markdown_to_pdf(
+                    markdown_content=report.content,
+                    output_path=pdf_filepath,
+                    title=f"Incident Report: {anomaly_id}",
+                    metadata={
+                        "service": service,
+                        "severity": severity,
+                        "anomaly_score": anomaly.get("score"),
+                        "generated_at": report.metadata.get("generated_at"),
+                    }
+                )
+                pdf_path = pdf_filepath
+                logger.info("pdf_generated", report_id=report.report_id, pdf_path=pdf_path)
+            except Exception as e:
+                logger.error("pdf_generation_failed", report_id=report.report_id, error=str(e))
+                # Continue without PDF - markdown is still available
+
             # Save metadata to database
             self.db_storage.save_metadata(
                 report_id=report.report_id,
                 anomaly_id=anomaly_id,
                 service=service,
                 severity=severity,
+                content=report.content,
                 filepath=filepath,
                 tokens_used=report.tokens_used,
                 cost_usd=report.cost_usd,
                 generation_time_ms=report.generation_time_ms,
                 model=report.metadata.get("model", "unknown"),
+                pdf_path=pdf_path,
             )
 
             # Update metrics

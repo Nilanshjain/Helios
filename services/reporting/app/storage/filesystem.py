@@ -37,17 +37,54 @@ class FileSystemStorage:
 
     def get_report(self, report_id: str, format: str = "md") -> Optional[str]:
         """Retrieve report by ID"""
+        # Try both .md and .markdown extensions
+        extensions = [format, "markdown"] if format == "md" else [format]
+
         for days_ago in range(settings.reports_retention_days):
             date = datetime.now() - timedelta(days=days_ago)
-            filepath = (
-                self.base_path
-                / date.strftime("%Y/%m/%d")
-                / f"{report_id}.{format}"
-            )
+            date_path = self.base_path / date.strftime("%Y/%m/%d")
 
-            if filepath.exists():
-                with open(filepath, "r", encoding="utf-8") as f:
-                    return f.read()
+            for ext in extensions:
+                filepath = date_path / f"{report_id}.{ext}"
+                if filepath.exists():
+                    with open(filepath, "r", encoding="utf-8") as f:
+                        return f.read()
 
         logger.warning("report_not_found", report_id=report_id)
         return None
+
+    def list_reports(
+        self, limit: int = 10, service: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """List recent reports"""
+        reports = []
+
+        # Search through recent dates
+        for days_ago in range(min(limit, settings.reports_retention_days)):
+            date = datetime.now() - timedelta(days=days_ago)
+            date_path = self.base_path / date.strftime("%Y/%m/%d")
+
+            if not date_path.exists():
+                continue
+
+            # List all markdown files in this date directory (.md and .markdown)
+            md_files = list(date_path.glob("*.md")) + list(date_path.glob("*.markdown"))
+            for filepath in sorted(md_files, reverse=True):
+                if len(reports) >= limit:
+                    break
+
+                report_id = filepath.stem
+
+                # Filter by service if specified
+                if service and service not in report_id:
+                    continue
+
+                reports.append({
+                    "report_id": report_id,
+                    "path": str(filepath.relative_to(self.base_path)),
+                    "date": date.strftime("%Y-%m-%d"),
+                    "size_bytes": filepath.stat().st_size,
+                })
+
+        logger.debug("listed_reports", count=len(reports), limit=limit)
+        return reports

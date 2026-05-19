@@ -5,9 +5,20 @@
 .cursor/
 .aider*
 
-# Markdown files (except README.md)
-*.md
-!README.md
+# Test outputs and Windows artifacts
+nul
+test_results.json
+**/test_results.json
+e2e_test_results.json
+
+# PDFs (binary artifacts) — allow committed samples under docs/
+*.pdf
+!docs/**/*.pdf
+
+# ML experiment tracking and datasets (large, regenerated locally)
+mlruns/
+data/
+models/evaluation/*.png
 
 # Go specific
 *.exe

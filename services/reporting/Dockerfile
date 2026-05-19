@@ -1,12 +1,17 @@
 # Multi-stage build for Python reporting service
 FROM python:3.11-slim as builder
 
-# Install system dependencies
+# Install system dependencies (including WeasyPrint requirements)
 RUN apt-get update && apt-get install -y \
     gcc \
     g++ \
     libpq-dev \
     libsnappy-dev \
+    libcairo2-dev \
+    libpango1.0-dev \
+    libgdk-pixbuf-2.0-dev \
+    libffi-dev \
+    shared-mime-info \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -20,10 +25,17 @@ RUN pip install --no-cache-dir --user -r requirements.txt
 # Runtime stage
 FROM python:3.11-slim
 
-# Install runtime dependencies
+# Install runtime dependencies (including WeasyPrint runtime libs)
 RUN apt-get update && apt-get install -y \
     libpq5 \
     libsnappy1v5 \
+    libcairo2 \
+    libpango-1.0-0 \
+    libpangocairo-1.0-0 \
+    libgdk-pixbuf-2.0-0 \
+    libffi8 \
+    shared-mime-info \
+    fonts-liberation \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

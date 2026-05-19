@@ -1,7 +1,5 @@
 global:
   resolve_timeout: 5m
-  # Slack webhook URL (optional - set via environment variable)
-  slack_api_url: '${SLACK_WEBHOOK_URL}'
 
 # Templates for notifications
 templates:
@@ -40,29 +38,16 @@ receivers:
         send_resolved: true
 
   - name: 'critical'
-    # Slack notifications for critical alerts
-    slack_configs:
-      - channel: '#helios-alerts'
-        title: '🚨 CRITICAL: {{ .GroupLabels.alertname }}'
-        text: >-
-          *Summary:* {{ .CommonAnnotations.summary }}
-          *Description:* {{ .CommonAnnotations.description }}
-          *Service:* {{ .GroupLabels.service }}
-          *Severity:* {{ .GroupLabels.severity }}
+    # Console logging for critical alerts
+    webhook_configs:
+      - url: 'http://localhost:9093/debug'
         send_resolved: true
-        color: 'danger'
 
   - name: 'warning'
-    # Slack notifications for warnings
-    slack_configs:
-      - channel: '#helios-alerts'
-        title: '⚠️  WARNING: {{ .GroupLabels.alertname }}'
-        text: >-
-          *Summary:* {{ .CommonAnnotations.summary }}
-          *Description:* {{ .CommonAnnotations.description }}
-          *Service:* {{ .GroupLabels.service }}
+    # Console logging for warnings
+    webhook_configs:
+      - url: 'http://localhost:9093/debug'
         send_resolved: true
-        color: 'warning'
 
 # Inhibition rules (suppress some alerts when others fire)
 inhibit_rules:

@@ -29,3 +29,9 @@ python-json-logger==2.0.7
 
 # Utilities
 python-dotenv==1.0.0
+
+# PDF Generation
+weasyprint==57.1
+pydyf==0.10.0
+markdown==3.5.1
+Pygments==2.17.2

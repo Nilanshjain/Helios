@@ -29,14 +29,14 @@ class MockGenerator(ReportGenerator):
         # Extract key data
         anomaly_id = anomaly.get('id', 'unknown')
         service = anomaly.get('service', 'unknown-service')
-        anomaly_score = anomaly.get('anomaly_score', 0.0)
-        detected_at = anomaly.get('detected_at', 'unknown')
+        anomaly_score = anomaly.get('score', anomaly.get('anomaly_score', 0.0))
+        detected_at = anomaly.get('timestamp', anomaly.get('detected_at', 'unknown'))
 
-        # Get key metrics
-        error_rate = metrics.get('error_rate', 0.0)
-        total_events = metrics.get('total_events', 0)
-        avg_latency = metrics.get('avg_latency', 0.0)
-        p99_latency = metrics.get('p99_latency', 0.0)
+        # Get key metrics (handle None values from database)
+        error_rate = metrics.get('avg_error_rate') or 0.0
+        total_events = int(metrics.get('avg_event_count') or 0)
+        avg_latency = metrics.get('avg_latency') or 0.0
+        p99_latency = metrics.get('avg_p99_latency') or 0.0
 
         # Determine severity based on anomaly score
         if anomaly_score < -0.8:
@@ -184,8 +184,7 @@ The following automated actions have been executed:
 
 1. ✅ Anomaly detected and logged
 2. ✅ Incident report generated
-3. ✅ On-call team notified (if Slack configured)
-4. ⏳ Awaiting human investigation
+3. ⏳ Awaiting human investigation
 
 **Current System State**: Under observation
 
