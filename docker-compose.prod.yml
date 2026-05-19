@@ -1,0 +1,58 @@
+# Production overrides for Helios.
+# Layer this on top of docker-compose.yml for a public deploy:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --wait
+#
+# Defaults emphasise:
+#   - safe public exposure (Grafana viewer-only, no admin/admin)
+#   - smaller resource limits (fits Oracle Cloud Always Free ARM VM)
+#   - long retention disabled (90-day defaults won't fit free-tier disk)
+#   - reporting service in mock mode by default so the demo never bills
+
+services:
+  grafana:
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      # Override admin password from .env. Never ship admin/admin to a public URL.
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-changeme}
+      # Anonymous read-only access so recruiters don't need to log in.
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_AUTH_ANONYMOUS_ORG_NAME: Main Org.
+      GF_USERS_DEFAULT_THEME: dark
+    restart: unless-stopped
+
+  reporting-consumer:
+    # Default to mock on public deploy unless GEMINI_API_KEY is explicitly set.
+    # Prevents accidentally burning quota on demo traffic.
+    environment:
+      REPORT_GENERATOR_MODE: ${REPORT_GENERATOR_MODE:-mock}
+
+  timescaledb:
+    # Free-tier disks are small — keep raw events for 7 days instead of 30.
+    environment:
+      POSTGRES_DB: helios
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+    restart: unless-stopped
+
+  kafka:
+    # Shrink heap on small ARM VM (2 GB by default would OOM on 4 vCPU/24 GB
+    # when the other services are competing).
+    environment:
+      KAFKA_HEAP_OPTS: "-Xmx768m -Xms512m"
+      KAFKA_LOG_RETENTION_HOURS: 72  # 3 days for the public demo
+    restart: unless-stopped
+
+  zookeeper:
+    environment:
+      ZOO_HEAP_OPTS: "-Xmx256m -Xms256m"
+    restart: unless-stopped
+
+  prometheus:
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=7d'   # was 30d
+      - '--web.enable-lifecycle'
+    restart: unless-stopped

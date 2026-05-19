@@ -129,7 +129,6 @@ services:
 
   # Go Ingestion Service (will be built locally)
   ingestion:
-    platform: linux/amd64
     build:
       context: ./services/ingestion
       dockerfile: Dockerfile
@@ -156,7 +155,6 @@ services:
 
   # Python Detection Service - API Server
   detection:
-    platform: linux/amd64
     build:
       context: ./services/detection
       dockerfile: Dockerfile
@@ -197,7 +195,6 @@ services:
 
   # Detection Consumer - Real-time anomaly detection
   detection-consumer:
-    platform: linux/amd64
     build:
       context: ./services/detection
       dockerfile: Dockerfile
@@ -236,7 +233,6 @@ services:
 
   # Storage writer service (Kafka consumer -> TimescaleDB)
   storage-writer:
-    platform: linux/amd64
     build:
       context: ./services/ingestion
       dockerfile: Dockerfile
@@ -266,7 +262,6 @@ services:
 
   # Python Reporting Service - API Server
   reporting:
-    platform: linux/amd64
     build:
       context: ./services/reporting
       dockerfile: Dockerfile
@@ -318,7 +313,6 @@ services:
 
   # Reporting Consumer - Auto-generate reports from anomaly alerts
   reporting-consumer:
-    platform: linux/amd64
     build:
       context: ./services/reporting
       dockerfile: Dockerfile

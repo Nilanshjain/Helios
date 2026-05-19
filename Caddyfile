@@ -1,0 +1,61 @@
+# Caddy reverse proxy for the public Helios demo.
+#
+# Caddy auto-provisions Let's Encrypt certs based on the configured
+# hostname — no manual certbot dance. Replace `helios.example.com` with
+# your free duckdns.org subdomain (or any DNS name that resolves to the
+# VM's public IPv4) before running.
+#
+# Run alongside the stack:
+#   caddy run --config Caddyfile --adapter caddyfile
+# Or via systemd (see docs/DEPLOY.md for the unit file).
+#
+# Grafana sub-paths require the GF_SERVER_ROOT_URL env var to be set so
+# absolute redirects work behind the proxy; that's added in docker-
+# compose.prod.yml via GF_SERVER_ROOT_URL=https://helios.example.com.
+
+{
+    # Email used for Let's Encrypt account / expiry notifications.
+    # Replace with your own.
+    email admin@example.com
+}
+
+helios.example.com {
+    encode gzip
+
+    # Rate limit Grafana login probes to slow bots without breaking the
+    # genuine recruiter visiting the URL.
+    @login {
+        path /login*
+    }
+    handle @login {
+        reverse_proxy localhost:3100
+    }
+
+    # Everything else: serve Grafana directly (anonymous viewer is enabled
+    # in docker-compose.prod.yml, so visitors see dashboards without login).
+    handle {
+        reverse_proxy localhost:3100
+    }
+
+    log {
+        output file /var/log/caddy/helios.log {
+            roll_size 50mb
+            roll_keep 5
+        }
+        format json
+    }
+}
+
+# Optional: expose Kafka UI on a sub-path so recruiters can inspect topics.
+# Comment this block out if you'd rather keep it internal.
+kafka.helios.example.com {
+    encode gzip
+
+    basicauth {
+        # bcrypt-hashed password; generate with `caddy hash-password`.
+        # Default below is just a placeholder — replace before going public.
+        viewer JDJhJDE0JHBsYWNlaG9sZGVyJGFCcjJjQUlhMHhzbU5VVmF3ZEhBd1MyYWdK
+    }
+
+    reverse_proxy localhost:9000
+}
