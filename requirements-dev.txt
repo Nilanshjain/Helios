@@ -1,0 +1,15 @@
+# Dev dependencies for training and evaluating the Helios anomaly detector.
+# Runtime services have their own requirements.txt under services/*/.
+
+# Match the runtime versions used by the detection service to keep feature
+# extraction and model artifacts portable between environments.
+scikit-learn==1.3.2
+pandas==2.1.3
+numpy==1.26.2
+joblib==1.3.2
+
+# Evaluation harness and plots
+matplotlib>=3.7,<4.0
+
+# Experiment tracking — local file backend at ./mlruns/
+mlflow>=2.8,<3.0

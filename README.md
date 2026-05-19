@@ -12,16 +12,32 @@ A distributed microservices system that processes application logs in real-time,
 
 ---
 
+## Model Performance on Public Benchmarks
+
+The 12-feature Isolation Forest pipeline (`services/detection/app/ml/`) is evaluated on two public labeled anomaly-detection benchmarks. The chosen production threshold is derived from a validation-set F1 sweep and persisted in [`models/evaluation/results.json`](models/evaluation/results.json) — the detection service loads it at startup.
+
+| Dataset | F1 | Precision | Recall | FPR | PR-AUC | ROC-AUC | Threshold |
+|---|---|---|---|---|---|---|---|
+| **NAB** (Numenta Anomaly Benchmark, Neurocomputing 2017) | 0.326 | 0.338 | 0.314 | 0.063 | 0.276 | 0.635 | +0.10 |
+| **SMD** (Server Machine Dataset, OmniAnomaly KDD 2019) | 0.327 | 0.274 | 0.405 | 0.052 | 0.369 | 0.810 | +0.06 |
+
+Streams (NAB) / machines (SMD) are split 60/20/20 by identity into train / validation / test — held-out test data is never seen during training or threshold selection. Raw values are per-stream z-score normalized before feature extraction. Full methodology, plots, and limitations: [`models/evaluation/model_card.md`](models/evaluation/model_card.md). Reproduce with `python scripts/evaluate.py --dataset both`.
+
+*Caveat: public benchmark performance is a proxy for production behaviour — production Helios sees 12-feature windows over real Kafka event streams, where `error_rate` is computed from `level=ERROR|CRITICAL` ratios rather than the z-score proxy used here.*
+
+---
+
 ## Overview
 
 Helios is an observability platform designed to monitor microservices infrastructure by ingesting event logs, detecting anomalies through unsupervised machine learning, and generating actionable incident reports. The system processes events in real-time with sub-30ms P99 latency and maintains 100% message delivery guarantees through Kafka streaming.
 
 **Key Features:**
 - High-performance event ingestion with Go-based goroutine concurrency
-- Real-time anomaly detection using Isolation Forest with 12-feature engineering pipeline
+- Real-time anomaly detection using Isolation Forest with 12-feature engineering pipeline, evaluated on NAB + SMD
 - Event-driven architecture with Apache Kafka (10 partitions, snappy compression)
 - Time-series optimized storage with TimescaleDB hypertables
-- LLM-powered incident report generation via Anthropic Claude API
+- Validation-driven threshold selection with MLflow experiment tracking (`mlruns/`)
+- LLM-powered incident report generation (Gemini default, Claude alternative)
 - Comprehensive monitoring with Prometheus and Grafana
 - Multi-language microservices architecture (Go for throughput, Python for ML/AI)
 
