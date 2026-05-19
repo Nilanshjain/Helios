@@ -1,4 +1,4 @@
-.PHONY: help build test clean up down logs ps restart
+.PHONY: help demo demo-quiet evaluate drift sample-report build test clean up down logs ps restart
 
 # Default target
 .DEFAULT_GOAL := help
@@ -14,6 +14,26 @@ NC := \033[0m # No Color
 help:
 	@echo "$(BLUE)Helios - Available Commands:$(NC)"
 	@grep -E '^## ' $(MAKEFILE_LIST) | sed 's/## /  /' | column -t -s ':'
+
+## demo: One-command bring-up (compose --wait, seed data, open Grafana)
+demo:
+	@python scripts/demo.py
+
+## demo-quiet: Same as demo but doesn't open the browser
+demo-quiet:
+	@python scripts/demo.py --no-browser
+
+## evaluate: Re-run NAB + SMD evaluation (writes models/evaluation/results.json)
+evaluate:
+	@python scripts/evaluate.py --dataset both --contaminations 0.03 0.05 0.10
+
+## drift: Run PSI drift check with the moderate-drift simulator
+drift:
+	@python scripts/drift_check.py --simulate moderate
+
+## sample-report: Regenerate docs/sample-incident-report.md
+sample-report:
+	@python scripts/generate_sample_report.py
 
 ## setup: Initial project setup (install dependencies, create configs)
 setup:
@@ -128,10 +148,10 @@ seed-data:
 	@echo "$(GREEN)Seeding database with test data...$(NC)"
 	./scripts/seed_data.sh
 
-## train-model: Train anomaly detection model
+## train-model: Train the anomaly-detection model (synthetic data)
 train-model:
 	@echo "$(GREEN)Training ML model...$(NC)"
-	cd services/detection && poetry run python -m models.train
+	@python scripts/train_model.py --grid-search
 
 ## db-shell: Open PostgreSQL shell
 db-shell:
@@ -168,31 +188,6 @@ clean:
 	rm -rf services/detection/__pycache__
 	find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 	find . -type f -name "*.pyc" -delete
-
-## tf-init: Initialize Terraform
-tf-init:
-	cd infrastructure/terraform/environments/dev && terraform init
-
-## tf-plan: Terraform plan for dev environment
-tf-plan:
-	cd infrastructure/terraform/environments/dev && terraform plan
-
-## tf-apply: Apply Terraform changes for dev environment
-tf-apply:
-	cd infrastructure/terraform/environments/dev && terraform apply
-
-## tf-destroy: Destroy Terraform infrastructure
-tf-destroy:
-	@echo "$(RED)WARNING: This will destroy all infrastructure!$(NC)"
-	cd infrastructure/terraform/environments/dev && terraform destroy
-
-## k8s-deploy: Deploy to Kubernetes
-k8s-deploy:
-	kubectl apply -f infrastructure/k8s/
-
-## k8s-delete: Delete from Kubernetes
-k8s-delete:
-	kubectl delete -f infrastructure/k8s/
 
 ## docker-prune: Remove unused Docker resources
 docker-prune:

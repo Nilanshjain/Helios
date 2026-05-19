@@ -1,14 +1,39 @@
 # Helios
 
-**Event-Driven Observability Platform with Real-Time ML Anomaly Detection**
-
-A distributed microservices system that processes application logs in real-time, detects anomalies using Machine Learning (Isolation Forest), and generates automated incident reports through LLM integration.
+**Real-time anomaly detection on streaming telemetry, with SHAP-grounded LLM incident reports and end-to-end MLOps observability.**
 
 [![Go](https://img.shields.io/badge/Go-1.21-00ADD8?logo=go&logoColor=white)](https://golang.org/)
 [![Python](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white)](https://python.org/)
 [![Kafka](https://img.shields.io/badge/Kafka-3.6-231F20?logo=apache-kafka&logoColor=white)](https://kafka.apache.org/)
 [![Docker](https://img.shields.io/badge/Docker-20.10-2496ED?logo=docker&logoColor=white)](https://docker.com/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+
+Helios processes operational events through Kafka, scores 1-minute service windows with an Isolation Forest (12-feature pipeline), explains each anomaly with live SHAP attributions, and generates structured incident reports via Gemini (or Claude). Feature drift, model freshness, and prediction-score shifts are monitored continuously and alerted on.
+
+- **Headline result:** F1 0.326 on NAB, F1 0.327 on SMD (ROC-AUC 0.81 on SMD) on held-out splits of two public labeled benchmarks — see table below.
+- **Live demo:** *coming after Phase 6 cloud deploy.*
+- **Sample incident report:** [`docs/sample-incident-report.md`](docs/sample-incident-report.md) — real rendering from the production code path.
+- **MLOps deep-dive:** [`docs/MLOPS.md`](docs/MLOPS.md).
+
+---
+
+## Try it in 60 seconds
+
+```bash
+git clone <repo-url> helios && cd helios
+cp .env.example .env             # optional: add GEMINI_API_KEY for real LLM reports
+python scripts/demo.py           # brings up the full stack, seeds data, opens Grafana
+```
+
+The demo script runs `docker compose up --wait`, seeds 7 days of synthetic events, launches a background anomaly generator, and opens the master dashboard at `http://localhost:3100` (admin/admin). With no API key the reporting consumer falls back to a templated mock — every other component still works end-to-end.
+
+Other one-command entry points:
+
+```bash
+make evaluate     # Re-run NAB+SMD evaluation, refresh models/evaluation/
+make drift        # Compute PSI drift report with a moderate synthetic shift
+make sample-report  # Regenerate docs/sample-incident-report.md
+```
 
 ---
 
