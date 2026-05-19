@@ -1,392 +1,684 @@
 {
   "title": "Helios Observability Platform - Complete Dashboard",
-  "tags": ["helios", "observability", "ml", "ai"],
+  "tags": [
+    "helios",
+    "observability",
+    "ml",
+    "ai"
+  ],
   "timezone": "browser",
   "schemaVersion": 16,
   "version": 0,
   "refresh": "5s",
   "panels": [
-      {
-        "id": 1,
-        "gridPos": {"h": 1, "w": 24, "x": 0, "y": 0},
-        "type": "row",
-        "title": " Event Ingestion Metrics",
-        "collapsed": false
+    {
+      "id": 1,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
       },
-      {
-        "id": 2,
-        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 1},
-        "type": "graph",
-        "title": "Event Ingestion Rate (events/sec)",
-        "datasource": "Prometheus",
-        "targets": [
-          {
-            "expr": "rate(helios_events_ingested_total[1m])",
-            "legendFormat": "{{exported_service}} - {{level}}",
-            "refId": "A"
-          }
-        ],
-        "yaxes": [
-          {"format": "short", "label": "events/sec", "show": true},
-          {"format": "short", "show": false}
-        ],
-        "xaxis": {"show": true},
-        "lines": true,
-        "fill": 1,
-        "linewidth": 2,
-        "legend": {"show": true, "values": true, "current": true},
-        "tooltip": {"shared": true, "sort": 2, "value_type": "individual"}
+      "type": "row",
+      "title": " Event Ingestion Metrics",
+      "collapsed": false
+    },
+    {
+      "id": 2,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 1
       },
-      {
-        "id": 3,
-        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 1},
-        "type": "graph",
-        "title": "Total Events Ingested",
-        "datasource": "Prometheus",
-        "targets": [
-          {
-            "expr": "sum(helios_events_ingested_total) by (exported_service)",
-            "legendFormat": "{{exported_service}}",
-            "refId": "A"
-          }
-        ],
-        "yaxes": [
-          {"format": "short", "label": "total events", "show": true},
-          {"format": "short", "show": false}
-        ],
-        "lines": true,
-        "fill": 1,
-        "linewidth": 2,
-        "stack": true,
-        "legend": {"show": true, "values": true, "current": true}
-      },
-      {
-        "id": 4,
-        "gridPos": {"h": 8, "w": 8, "x": 0, "y": 9},
-        "type": "graph",
-        "title": "Ingestion Latency (p50, p95, p99)",
-        "datasource": "Prometheus",
-        "targets": [
-          {
-            "expr": "histogram_quantile(0.50, sum(rate(helios_ingestion_latency_seconds_bucket[5m])) by (le))",
-            "legendFormat": "p50",
-            "refId": "A"
-          },
-          {
-            "expr": "histogram_quantile(0.95, sum(rate(helios_ingestion_latency_seconds_bucket[5m])) by (le))",
-            "legendFormat": "p95",
-            "refId": "B"
-          },
-          {
-            "expr": "histogram_quantile(0.99, sum(rate(helios_ingestion_latency_seconds_bucket[5m])) by (le))",
-            "legendFormat": "p99",
-            "refId": "C"
-          }
-        ],
-        "yaxes": [
-          {"format": "s", "label": "latency", "show": true},
-          {"format": "short", "show": false}
-        ],
-        "lines": true,
-        "fill": 0,
-        "linewidth": 2
-      },
-      {
-        "id": 5,
-        "gridPos": {"h": 8, "w": 8, "x": 8, "y": 9},
-        "type": "stat",
-        "title": "Total Events (Last Hour)",
-        "datasource": "Prometheus",
-        "targets": [
-          {
-            "expr": "sum(increase(helios_events_ingested_total[1h]))",
-            "refId": "A"
-          }
-        ],
-        "options": {
-          "graphMode": "area",
-          "colorMode": "value",
-          "textMode": "value_and_name"
+      "type": "graph",
+      "title": "Event Ingestion Rate (events/sec)",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "rate(helios_events_ingested_total[1m])",
+          "legendFormat": "{{exported_service}} - {{level}}",
+          "refId": "A"
+        }
+      ],
+      "yaxes": [
+        {
+          "format": "short",
+          "label": "events/sec",
+          "show": true
         },
-        "fieldConfig": {
-          "defaults": {
-            "color": {"mode": "thresholds"},
-            "thresholds": {
-              "mode": "absolute",
-              "steps": [
-                {"value": null, "color": "green"},
-                {"value": 1000, "color": "yellow"},
-                {"value": 5000, "color": "red"}
-              ]
-            },
-            "unit": "short"
-          }
+        {
+          "format": "short",
+          "show": false
         }
+      ],
+      "xaxis": {
+        "show": true
       },
-      {
-        "id": 6,
-        "gridPos": {"h": 8, "w": 8, "x": 16, "y": 9},
-        "type": "stat",
-        "title": "Error Rate %",
-        "datasource": "Prometheus",
-        "targets": [
-          {
-            "expr": "sum(rate(helios_events_ingested_total{level=~\"ERROR|CRITICAL\"}[5m])) / sum(rate(helios_events_ingested_total[5m])) * 100",
-            "refId": "A"
-          }
-        ],
-        "options": {
-          "graphMode": "area",
-          "colorMode": "value",
-          "textMode": "value_and_name"
+      "lines": true,
+      "fill": 1,
+      "linewidth": 2,
+      "legend": {
+        "show": true,
+        "values": true,
+        "current": true
+      },
+      "tooltip": {
+        "shared": true,
+        "sort": 2,
+        "value_type": "individual"
+      }
+    },
+    {
+      "id": 3,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 1
+      },
+      "type": "graph",
+      "title": "Total Events Ingested",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(helios_events_ingested_total) by (exported_service)",
+          "legendFormat": "{{exported_service}}",
+          "refId": "A"
+        }
+      ],
+      "yaxes": [
+        {
+          "format": "short",
+          "label": "total events",
+          "show": true
         },
-        "fieldConfig": {
-          "defaults": {
-            "color": {"mode": "thresholds"},
-            "thresholds": {
-              "mode": "absolute",
-              "steps": [
-                {"value": null, "color": "green"},
-                {"value": 10, "color": "yellow"},
-                {"value": 30, "color": "red"}
-              ]
-            },
-            "unit": "percent",
-            "decimals": 2
-          }
+        {
+          "format": "short",
+          "show": false
         }
+      ],
+      "lines": true,
+      "fill": 1,
+      "linewidth": 2,
+      "stack": true,
+      "legend": {
+        "show": true,
+        "values": true,
+        "current": true
+      }
+    },
+    {
+      "id": 4,
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 9
       },
-      {
-        "id": 7,
-        "gridPos": {"h": 1, "w": 24, "x": 0, "y": 17},
-        "type": "row",
-        "title": " Database Metrics (TimescaleDB)",
-        "collapsed": false
-      },
-      {
-        "id": 8,
-        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 18},
-        "type": "graph",
-        "title": "Database Write Rate by Service",
-        "datasource": "TimescaleDB-Direct",
-        "targets": [
-          {
-            "rawSql": "SELECT\n  time_bucket('1 minute', time) AS time,\n  service AS metric,\n  COUNT(*) AS value\nFROM events\nWHERE $__timeFilter(time)\nGROUP BY 1, 2\nORDER BY 1",
-            "format": "time_series",
-            "refId": "A"
-          }
-        ],
-        "yaxes": [
-          {"format": "short", "label": "events/min", "show": true},
-          {"format": "short", "show": false}
-        ],
-        "lines": true,
-        "fill": 1,
-        "linewidth": 2,
-        "legend": {"show": true, "values": true, "current": true}
-      },
-      {
-        "id": 9,
-        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 18},
-        "type": "graph",
-        "title": "Database Write Latency (avg)",
-        "datasource": "TimescaleDB-Direct",
-        "targets": [
-          {
-            "rawSql": "SELECT\n  time_bucket('1 minute', time) AS time,\n  AVG(EXTRACT(EPOCH FROM (ingested_at - time)) * 1000) AS value\nFROM events\nWHERE $__timeFilter(time) AND ingested_at IS NOT NULL\nGROUP BY 1\nORDER BY 1",
-            "format": "time_series",
-            "refId": "A"
-          }
-        ],
-        "yaxes": [
-          {"format": "ms", "label": "latency", "show": true},
-          {"format": "short", "show": false}
-        ],
-        "lines": true,
-        "fill": 1,
-        "linewidth": 2
-      },
-      {
-        "id": 10,
-        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 26},
-        "type": "table",
-        "title": "Events by Service (Last Hour)",
-        "datasource": "TimescaleDB-Direct",
-        "targets": [
-          {
-            "rawSql": "SELECT\n  service AS \"Service\",\n  COUNT(*) AS \"Event Count\",\n  COUNT(CASE WHEN level IN ('ERROR', 'CRITICAL') THEN 1 END) AS \"Errors\",\n  ROUND(AVG(EXTRACT(EPOCH FROM (ingested_at - time)) * 1000), 2) AS \"Avg Latency (ms)\"\nFROM events\nWHERE time > NOW() - INTERVAL '1 hour' AND ingested_at IS NOT NULL\nGROUP BY service\nORDER BY COUNT(*) DESC",
-            "format": "table",
-            "refId": "A"
-          }
-        ],
-        "options": {
-          "showHeader": true
+      "type": "graph",
+      "title": "Ingestion Latency (p50, p95, p99)",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(helios_ingestion_latency_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p50",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(helios_ingestion_latency_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p95",
+          "refId": "B"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(helios_ingestion_latency_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p99",
+          "refId": "C"
         }
+      ],
+      "yaxes": [
+        {
+          "format": "s",
+          "label": "latency",
+          "show": true
+        },
+        {
+          "format": "short",
+          "show": false
+        }
+      ],
+      "lines": true,
+      "fill": 0,
+      "linewidth": 2
+    },
+    {
+      "id": 5,
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 9
       },
-      {
-        "id": 11,
-        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 26},
-        "type": "piechart",
-        "title": "Events by Log Level",
-        "datasource": "Prometheus",
-        "targets": [
-          {
-            "expr": "sum(helios_events_ingested_total) by (level)",
-            "legendFormat": "{{level}}",
-            "refId": "A"
-          }
-        ],
-        "options": {
-          "reduceOptions": {
-            "values": false,
-            "calcs": ["lastNotNull"]
+      "type": "stat",
+      "title": "Total Events (Last Hour)",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(increase(helios_events_ingested_total[1h]))",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "graphMode": "area",
+        "colorMode": "value",
+        "textMode": "value_and_name"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
           },
-          "displayLabels": ["name", "percent"],
-          "legend": {
-            "displayMode": "table",
-            "placement": "right",
-            "values": ["value", "percent"]
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "green"
+              },
+              {
+                "value": 1000,
+                "color": "yellow"
+              },
+              {
+                "value": 5000,
+                "color": "red"
+              }
+            ]
           },
-          "pieType": "pie"
-        }
-      },
-      {
-        "id": 12,
-        "gridPos": {"h": 1, "w": 24, "x": 0, "y": 34},
-        "type": "row",
-        "title": " ML & AI Metrics",
-        "collapsed": false
-      },
-      {
-        "id": 13,
-        "gridPos": {"h": 8, "w": 8, "x": 0, "y": 35},
-        "type": "graph",
-        "title": "Anomalies Detected by Severity",
-        "datasource": "TimescaleDB-Direct",
-        "targets": [
-          {
-            "rawSql": "SELECT\n  time_bucket('1 day', generated_at) AS time,\n  severity AS metric,\n  COUNT(*) AS value\nFROM incident_reports\nWHERE generated_at > NOW() - INTERVAL '7 days'\nGROUP BY 1, 2\nORDER BY 1",
-            "format": "time_series",
-            "refId": "A"
-          }
-        ],
-        "yaxes": [
-          {"format": "short", "label": "anomalies", "show": true},
-          {"format": "short", "show": false}
-        ],
-        "lines": true,
-        "fill": 1,
-        "linewidth": 2,
-        "stack": true,
-        "legend": {"show": true, "values": true, "current": true}
-      },
-      {
-        "id": 14,
-        "gridPos": {"h": 8, "w": 8, "x": 8, "y": 35},
-        "type": "stat",
-        "title": "Total Reports Generated (24h)",
-        "datasource": "TimescaleDB-Direct",
-        "targets": [
-          {
-            "rawSql": "SELECT\n  COUNT(*) AS \"Reports Generated\"\nFROM incident_reports\nWHERE generated_at > NOW() - INTERVAL '24 hours'",
-            "format": "table",
-            "refId": "A"
-          }
-        ],
-        "options": {
-          "graphMode": "area",
-          "colorMode": "value",
-          "textMode": "value_and_name"
-        },
-        "fieldConfig": {
-          "defaults": {
-            "color": {"mode": "thresholds"},
-            "thresholds": {
-              "mode": "absolute",
-              "steps": [
-                {"value": null, "color": "blue"},
-                {"value": 5, "color": "green"},
-                {"value": 10, "color": "yellow"}
-              ]
-            },
-            "unit": "short"
-          }
-        }
-      },
-      {
-        "id": 15,
-        "gridPos": {"h": 8, "w": 8, "x": 16, "y": 35},
-        "type": "stat",
-        "title": "AI Report Cost (24h)",
-        "datasource": "TimescaleDB-Direct",
-        "targets": [
-          {
-            "rawSql": "SELECT\n  ROUND(SUM(cost_usd)::numeric, 4) AS \"Total Cost ($)\"\nFROM incident_reports\nWHERE generated_at > NOW() - INTERVAL '24 hours'",
-            "format": "table",
-            "refId": "A"
-          }
-        ],
-        "options": {
-          "graphMode": "none",
-          "colorMode": "value",
-          "textMode": "value_and_name"
-        },
-        "fieldConfig": {
-          "defaults": {
-            "unit": "currencyUSD",
-            "decimals": 4
-          }
-        }
-      },
-      {
-        "id": 16,
-        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 43},
-        "type": "table",
-        "title": "Recent Incident Reports",
-        "datasource": "TimescaleDB-Direct",
-        "targets": [
-          {
-            "rawSql": "SELECT\n  report_id AS \"Report ID\",\n  service AS \"Service\",\n  severity AS \"Severity\",\n  model AS \"AI Model\",\n  tokens_used AS \"Tokens\",\n  ROUND(cost_usd::numeric, 4) AS \"Cost ($)\",\n  generated_at AS \"Generated At\"\nFROM incident_reports\nORDER BY generated_at DESC\nLIMIT 10",
-            "format": "table",
-            "refId": "A"
-          }
-        ],
-        "options": {
-          "showHeader": true
-        }
-      },
-      {
-        "id": 17,
-        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 43},
-        "type": "graph",
-        "title": "Consumer Batch Size (Events/min)",
-        "datasource": "TimescaleDB-Direct",
-        "targets": [
-          {
-            "rawSql": "SELECT\n  time_bucket('1 minute', time) AS time,\n  COUNT(*) AS value\nFROM events\nWHERE $__timeFilter(time)\nGROUP BY 1\nORDER BY 1",
-            "format": "time_series",
-            "refId": "A"
-          }
-        ],
-        "yaxes": [
-          {"format": "short", "label": "events/min", "show": true},
-          {"format": "short", "show": false}
-        ],
-        "lines": true,
-        "fill": 1,
-        "linewidth": 2
-      },
-      {
-        "id": 18,
-        "gridPos": {"h": 6, "w": 24, "x": 0, "y": 51},
-        "type": "text",
-        "title": "System Overview",
-        "options": {
-          "mode": "markdown",
-          "content": "##  Helios Observability Platform\n\n**Event-Driven ML Anomaly Detection with AI-Powered PDF Reports**\n\n### Key Features:\n- **Real-time Ingestion**: Sub-30ms P99 latency\n- **ML Detection**: Isolation Forest anomaly detection\n- **AI Reports**: Claude 3.5 Sonnet generates professional PDF incident reports\n- **Storage**: TimescaleDB time-series database + Kafka streaming\n\n### Current Stats:\n- 14 microservices | 3K+ events/hour | 10 reports generated | $0.02-0.05 per report"
+          "unit": "short"
         }
       }
-    ],
+    },
+    {
+      "id": 6,
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 9
+      },
+      "type": "stat",
+      "title": "Error Rate %",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(rate(helios_events_ingested_total{level=~\"ERROR|CRITICAL\"}[5m])) / sum(rate(helios_events_ingested_total[5m])) * 100",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "graphMode": "area",
+        "colorMode": "value",
+        "textMode": "value_and_name"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "green"
+              },
+              {
+                "value": 10,
+                "color": "yellow"
+              },
+              {
+                "value": 30,
+                "color": "red"
+              }
+            ]
+          },
+          "unit": "percent",
+          "decimals": 2
+        }
+      }
+    },
+    {
+      "id": 7,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 17
+      },
+      "type": "row",
+      "title": " Database Metrics (TimescaleDB)",
+      "collapsed": false
+    },
+    {
+      "id": 8,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 18
+      },
+      "type": "graph",
+      "title": "Database Write Rate by Service",
+      "datasource": "TimescaleDB-Direct",
+      "targets": [
+        {
+          "rawSql": "SELECT\n  time_bucket('1 minute', time) AS time,\n  service AS metric,\n  COUNT(*) AS value\nFROM events\nWHERE $__timeFilter(time)\nGROUP BY 1, 2\nORDER BY 1",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ],
+      "yaxes": [
+        {
+          "format": "short",
+          "label": "events/min",
+          "show": true
+        },
+        {
+          "format": "short",
+          "show": false
+        }
+      ],
+      "lines": true,
+      "fill": 1,
+      "linewidth": 2,
+      "legend": {
+        "show": true,
+        "values": true,
+        "current": true
+      }
+    },
+    {
+      "id": 9,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 18
+      },
+      "type": "graph",
+      "title": "Database Write Latency (avg)",
+      "datasource": "TimescaleDB-Direct",
+      "targets": [
+        {
+          "rawSql": "SELECT\n  time_bucket('1 minute', time) AS time,\n  AVG(EXTRACT(EPOCH FROM (ingested_at - time)) * 1000) AS value\nFROM events\nWHERE $__timeFilter(time) AND ingested_at IS NOT NULL\nGROUP BY 1\nORDER BY 1",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ],
+      "yaxes": [
+        {
+          "format": "ms",
+          "label": "latency",
+          "show": true
+        },
+        {
+          "format": "short",
+          "show": false
+        }
+      ],
+      "lines": true,
+      "fill": 1,
+      "linewidth": 2
+    },
+    {
+      "id": 10,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 26
+      },
+      "type": "table",
+      "title": "Events by Service (Last Hour)",
+      "datasource": "TimescaleDB-Direct",
+      "targets": [
+        {
+          "rawSql": "SELECT\n  service AS \"Service\",\n  COUNT(*) AS \"Event Count\",\n  COUNT(CASE WHEN level IN ('ERROR', 'CRITICAL') THEN 1 END) AS \"Errors\",\n  ROUND(AVG(EXTRACT(EPOCH FROM (ingested_at - time)) * 1000), 2) AS \"Avg Latency (ms)\"\nFROM events\nWHERE time > NOW() - INTERVAL '1 hour' AND ingested_at IS NOT NULL\nGROUP BY service\nORDER BY COUNT(*) DESC",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showHeader": true
+      }
+    },
+    {
+      "id": 11,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 26
+      },
+      "type": "piechart",
+      "title": "Events by Log Level",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(helios_events_ingested_total) by (level)",
+          "legendFormat": "{{level}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "values": false,
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "displayLabels": [
+          "name",
+          "percent"
+        ],
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "values": [
+            "value",
+            "percent"
+          ]
+        },
+        "pieType": "pie"
+      }
+    },
+    {
+      "id": 12,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 34
+      },
+      "type": "row",
+      "title": " ML & AI Metrics",
+      "collapsed": false
+    },
+    {
+      "id": 13,
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 35
+      },
+      "type": "graph",
+      "title": "Anomalies Detected by Severity",
+      "datasource": "TimescaleDB-Direct",
+      "targets": [
+        {
+          "rawSql": "SELECT\n  time_bucket('1 day', generated_at) AS time,\n  severity AS metric,\n  COUNT(*) AS value\nFROM incident_reports\nWHERE generated_at > NOW() - INTERVAL '7 days'\nGROUP BY 1, 2\nORDER BY 1",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ],
+      "yaxes": [
+        {
+          "format": "short",
+          "label": "anomalies",
+          "show": true
+        },
+        {
+          "format": "short",
+          "show": false
+        }
+      ],
+      "lines": true,
+      "fill": 1,
+      "linewidth": 2,
+      "stack": true,
+      "legend": {
+        "show": true,
+        "values": true,
+        "current": true
+      }
+    },
+    {
+      "id": 14,
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 35
+      },
+      "type": "stat",
+      "title": "Total Reports Generated (24h)",
+      "datasource": "TimescaleDB-Direct",
+      "targets": [
+        {
+          "rawSql": "SELECT\n  COUNT(*) AS \"Reports Generated\"\nFROM incident_reports\nWHERE generated_at > NOW() - INTERVAL '24 hours'",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "graphMode": "area",
+        "colorMode": "value",
+        "textMode": "value_and_name"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "value": null,
+                "color": "blue"
+              },
+              {
+                "value": 5,
+                "color": "green"
+              },
+              {
+                "value": 10,
+                "color": "yellow"
+              }
+            ]
+          },
+          "unit": "short"
+        }
+      }
+    },
+    {
+      "id": 15,
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 35
+      },
+      "type": "stat",
+      "title": "AI Report Cost (24h)",
+      "datasource": "TimescaleDB-Direct",
+      "targets": [
+        {
+          "rawSql": "SELECT\n  ROUND(SUM(cost_usd)::numeric, 4) AS \"Total Cost ($)\"\nFROM incident_reports\nWHERE generated_at > NOW() - INTERVAL '24 hours'",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "graphMode": "none",
+        "colorMode": "value",
+        "textMode": "value_and_name"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "decimals": 4
+        }
+      }
+    },
+    {
+      "id": 16,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 43
+      },
+      "type": "table",
+      "title": "Recent Incident Reports",
+      "datasource": "TimescaleDB-Direct",
+      "targets": [
+        {
+          "rawSql": "SELECT\n  report_id AS \"Report ID\",\n  service AS \"Service\",\n  severity AS \"Severity\",\n  model AS \"AI Model\",\n  tokens_used AS \"Tokens\",\n  ROUND(cost_usd::numeric, 4) AS \"Cost ($)\",\n  generated_at AS \"Generated At\"\nFROM incident_reports\nORDER BY generated_at DESC\nLIMIT 10",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showHeader": true
+      }
+    },
+    {
+      "id": 17,
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 43
+      },
+      "type": "graph",
+      "title": "Consumer Batch Size (Events/min)",
+      "datasource": "TimescaleDB-Direct",
+      "targets": [
+        {
+          "rawSql": "SELECT\n  time_bucket('1 minute', time) AS time,\n  COUNT(*) AS value\nFROM events\nWHERE $__timeFilter(time)\nGROUP BY 1\nORDER BY 1",
+          "format": "time_series",
+          "refId": "A"
+        }
+      ],
+      "yaxes": [
+        {
+          "format": "short",
+          "label": "events/min",
+          "show": true
+        },
+        {
+          "format": "short",
+          "show": false
+        }
+      ],
+      "lines": true,
+      "fill": 1,
+      "linewidth": 2
+    },
+    {
+      "id": 18,
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 51
+      },
+      "type": "text",
+      "title": "System Overview",
+      "options": {
+        "mode": "markdown",
+        "content": "##  Helios Observability Platform\n\n**Event-Driven ML Anomaly Detection with AI-Powered PDF Reports**\n\n### Key Features:\n- **Real-time Ingestion**: Sub-30ms P99 latency\n- **ML Detection**: Isolation Forest anomaly detection\n- **AI Reports**: Claude 3.5 Sonnet generates professional PDF incident reports\n- **Storage**: TimescaleDB time-series database + Kafka streaming\n\n### Current Stats:\n- 14 microservices | 3K+ events/hour | 10 reports generated | $0.02-0.05 per report"
+      }
+    },
+    {
+      "id": 19,
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 57
+      },
+      "type": "table",
+      "title": "Recent Anomalies \u2014 Top SHAP Feature",
+      "description": "Last 20 anomalies with the single top SHAP-attributed feature driving the score. Negative SHAP pushes the IsolationForest score lower (more anomalous).",
+      "datasource": "TimescaleDB-Direct",
+      "targets": [
+        {
+          "rawSql": "SELECT\n  time AS \"Time\",\n  service AS \"Service\",\n  severity AS \"Severity\",\n  ROUND(score::numeric, 3) AS \"IF score\",\n  (features->'top_features'->0->>'name') AS \"Top feature\",\n  ROUND(((features->'top_features'->0->>'value')::numeric), 3) AS \"Value\",\n  ROUND(((features->'top_features'->0->>'shap')::numeric), 3) AS \"SHAP\",\n  (features->'top_features'->0->>'direction') AS \"Direction\"\nFROM anomalies\nWHERE time > NOW() - INTERVAL '24 hours'\n  AND features ? 'top_features'\nORDER BY time DESC\nLIMIT 20",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showHeader": true
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "left"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Severity"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "CRITICAL": {
+                        "color": "red",
+                        "index": 0
+                      }
+                    }
+                  },
+                  {
+                    "type": "value",
+                    "options": {
+                      "HIGH": {
+                        "color": "orange",
+                        "index": 1
+                      }
+                    }
+                  },
+                  {
+                    "type": "value",
+                    "options": {
+                      "MEDIUM": {
+                        "color": "yellow",
+                        "index": 2
+                      }
+                    }
+                  },
+                  {
+                    "type": "value",
+                    "options": {
+                      "LOW": {
+                        "color": "blue",
+                        "index": 3
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.displayMode",
+                "value": "color-background"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
   "overwrite": true,
   "inputs": [],
   "folderId": 0

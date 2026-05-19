@@ -5,6 +5,8 @@ import time
 from collections import deque
 from datetime import datetime, timedelta
 from typing import Dict, List, Any, Optional
+
+import numpy as np
 from kafka import KafkaConsumer, KafkaProducer
 from kafka.errors import KafkaError
 
@@ -16,8 +18,13 @@ from app.consumers.metrics import (
     events_processed,
     anomalies_detected,
     detection_latency,
+    shap_inference_latency,
     window_size_gauge,
 )
+
+# How many of the SHAP-attributed features to include in the alert payload.
+# Three is enough for the LLM prompt + Grafana panel without bloating Kafka.
+_SHAP_TOP_N = 3
 
 logger = get_logger(__name__)
 
@@ -207,6 +214,14 @@ class DetectionConsumer:
             logger.debug("alert_suppressed", service=service)
             return
 
+        feature_names = result["feature_names"]
+        feature_values = result["features"]
+        features_dict = dict(zip(feature_names, feature_values))
+
+        # Compute SHAP attributions for this anomaly. Soft-fail: an unexplained
+        # anomaly is still actionable, so we never abort on SHAP errors.
+        top_features = self._compute_top_features(feature_values, feature_names)
+
         # Create anomaly alert
         alert = {
             "id": f"anomaly_{service}_{int(time.time())}",
@@ -215,7 +230,8 @@ class DetectionConsumer:
             "severity": result["severity"],
             "score": result["score"],
             "threshold": result["threshold"],
-            "features": dict(zip(result["feature_names"], result["features"])),
+            "features": features_dict,
+            "top_features": top_features,
             "window_size": len(events),
             "window_start": events[0]["time"] if events else None,
             "window_end": events[-1]["time"] if events else None,
@@ -240,6 +256,54 @@ class DetectionConsumer:
             score=result["score"],
         )
 
+    def _compute_top_features(
+        self, feature_values: List[float], feature_names: List[str]
+    ) -> List[Dict[str, Any]]:
+        """Return the top-N SHAP-ranked features for an anomaly.
+
+        Each entry is ``{"name": str, "value": float, "shap": float,
+        "direction": "toward_anomaly" | "toward_normal"}``. Returns an empty
+        list when SHAP is unavailable so downstream consumers (Kafka, DB,
+        Grafana, LLM prompt) can safely treat its presence as optional.
+        """
+        if self.detector is None:
+            return []
+        start = time.time()
+        try:
+            features_array = np.array(feature_values).reshape(1, -1)
+            explanation = self.detector.explain(features_array)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("shap_explain_error", error=str(exc))
+            return []
+        finally:
+            shap_inference_latency.observe(time.time() - start)
+
+        if not explanation:
+            return []
+
+        # explanation["feature_importance"] is sorted by |shap| descending.
+        # Lower IsolationForest score => more anomalous; negative SHAP pushes
+        # the score down. So negative shap = "toward_anomaly".
+        ranked = explanation.get("feature_importance", [])
+        top: List[Dict[str, Any]] = []
+        for item in ranked[:_SHAP_TOP_N]:
+            name = item["feature"]
+            shap_value = float(item["shap_value"])
+            try:
+                idx = feature_names.index(name)
+                value = float(feature_values[idx])
+            except (ValueError, IndexError):
+                value = float("nan")
+            top.append(
+                {
+                    "name": name,
+                    "value": value,
+                    "shap": shap_value,
+                    "direction": "toward_anomaly" if shap_value < 0 else "toward_normal",
+                }
+            )
+        return top
+
     def _should_suppress_alert(self, service: str, cooldown_minutes: int = 10) -> bool:
         """
         Check if alert should be suppressed based on recent alerts.
@@ -260,14 +324,27 @@ class DetectionConsumer:
         return time_since_last < cooldown_minutes
 
     def _store_anomaly(self, alert: Dict[str, Any]) -> None:
-        """Store anomaly in database"""
+        """Store anomaly in database.
+
+        The ``anomalies`` table has a flexible ``features`` JSONB column. We
+        stash the window bounds, top SHAP features, and the raw feature dict
+        inside it so we don't have to migrate the schema each time a new
+        attribution field is added. The severity is uppercased to match the
+        CHECK constraint (LOW / MEDIUM / HIGH / CRITICAL).
+        """
         try:
+            features_payload = {
+                "values": alert["features"],
+                "top_features": alert.get("top_features", []),
+                "window_size": alert.get("window_size"),
+                "window_start": alert.get("window_start"),
+                "window_end": alert.get("window_end"),
+            }
             query = """
                 INSERT INTO anomalies (
-                    time, service, severity, score, threshold,
-                    features, window_size, window_start, window_end
+                    time, anomaly_id, service, severity, score, threshold, features
                 )
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
             """
 
             with db.get_cursor() as cursor:
@@ -275,14 +352,12 @@ class DetectionConsumer:
                     query,
                     (
                         alert["timestamp"],
+                        alert["id"],
                         alert["service"],
-                        alert["severity"],
+                        str(alert["severity"]).upper(),
                         alert["score"],
                         alert["threshold"],
-                        json.dumps(alert["features"]),
-                        alert["window_size"],
-                        alert["window_start"],
-                        alert["window_end"],
+                        json.dumps(features_payload),
                     ),
                 )
 

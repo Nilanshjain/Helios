@@ -6,9 +6,9 @@ from kafka import KafkaConsumer
 from app.core.config import settings
 from app.core.logging import get_logger
 from app.core.database import db
+from app.generators.base import ReportContext, ReportGenerator
 from app.generators.claude_generator import ClaudeGenerator
 from app.generators.mock_generator import MockGenerator
-from app.generators.base import ReportContext
 from app.storage.filesystem import FileSystemStorage
 from app.storage.database import DatabaseStorage
 from app.utils.pdf_generator import PDFGenerator
@@ -44,13 +44,13 @@ class ReportConsumer:
             enable_auto_commit=True,
         )
 
-        # Initialize generator based on mode
-        if settings.use_claude:
-            logger.info("using_claude_generator")
-            self.generator = ClaudeGenerator()
-        else:
-            logger.info("using_mock_generator")
-            self.generator = MockGenerator()
+        # Pick the configured generator, falling back to mock if the chosen
+        # provider isn't usable (missing key, missing SDK). Mock is always
+        # usable so the demo never silently fails.
+        self.generator: ReportGenerator
+        self.generator_name: str
+        self.generator, self.generator_name = self._build_generator()
+        logger.info("generator_selected", generator=self.generator_name)
 
         # Initialize storage
         self.file_storage = FileSystemStorage()
@@ -60,6 +60,42 @@ class ReportConsumer:
         self.pdf_generator = PDFGenerator()
 
         logger.info("report_consumer_initialized")
+
+    def _build_generator(self) -> tuple[ReportGenerator, str]:
+        """Construct the configured generator with graceful fallback to mock.
+
+        Selection rule: ``REPORT_GENERATOR_MODE`` env var picks the provider
+        (``gemini`` / ``claude`` / ``mock``). If the chosen provider's
+        required key/SDK is missing, we log a warning and use mock — better
+        a templated report than a crashed consumer. The mock generator is
+        considered a first-class option for local development.
+        """
+        mode = (settings.report_generator_mode or "").lower().strip()
+
+        if mode == "gemini":
+            try:
+                from app.generators.gemini_generator import GeminiGenerator
+
+                return GeminiGenerator(), "gemini"
+            except Exception as exc:  # noqa: BLE001
+                logger.warning(
+                    "gemini_unavailable_falling_back_to_mock",
+                    error=str(exc),
+                )
+
+        if mode == "claude":
+            try:
+                return ClaudeGenerator(), "claude"
+            except Exception as exc:  # noqa: BLE001
+                logger.warning(
+                    "claude_unavailable_falling_back_to_mock",
+                    error=str(exc),
+                )
+
+        if mode not in ("gemini", "claude", "mock", ""):
+            logger.warning("unknown_generator_mode_falling_back_to_mock", mode=mode)
+
+        return MockGenerator(), "mock"
 
     def start(self) -> None:
         """Start consuming anomaly alerts"""
@@ -139,9 +175,8 @@ class ReportConsumer:
             )
 
             # Update metrics
-            generator_type = "claude" if settings.use_claude else "mock"
             reports_generated.labels(
-                service=service, severity=severity, generator=generator_type
+                service=service, severity=severity, generator=self.generator_name
             ).inc()
 
             if report.tokens_used > 0:

@@ -9,7 +9,8 @@ kafka-python==2.0.2
 python-snappy==0.6.1
 psycopg2-binary==2.9.9
 
-# Anthropic Claude
+# LLM providers — Gemini is the default, Claude is the configurable alternative.
+google-generativeai>=0.7,<1.0
 anthropic==0.18.1
 
 # Data Processing

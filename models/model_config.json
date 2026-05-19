@@ -1,6 +1,6 @@
 {
   "model_type": "IsolationForest",
-  "training_date": "2025-10-22T20:56:01.475384",
+  "training_date": "2026-05-19T15:45:12.863379",
   "training_samples": 2016,
   "features": [
     "event_count",
@@ -24,16 +24,16 @@
     "random_state": 42
   },
   "metrics": {
-    "accuracy": 0.9761904761904762,
-    "precision": 0.8415841584158416,
-    "recall": 0.7264957264957265,
-    "f1_score": 0.7798165137614679,
-    "false_positive_rate": 0.00842548709847288,
+    "accuracy": 0.9742063492063492,
+    "precision": 0.8217821782178217,
+    "recall": 0.7094017094017094,
+    "f1_score": 0.761467889908257,
+    "false_positive_rate": 0.009478672985781991,
     "confusion_matrix": {
-      "tn": 1883,
-      "fp": 16,
-      "fn": 32,
-      "tp": 85
+      "tn": 1881,
+      "fp": 18,
+      "fn": 34,
+      "tp": 83
     },
     "targets_met": false
   }

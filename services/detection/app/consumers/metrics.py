@@ -68,3 +68,13 @@ window_size_gauge = get_or_create_gauge(
     "Current window size",
     ["service"],
 )
+
+# SHAP inference latency. Emitted once per anomaly that gets explained, so
+# the histogram doubles as a "did we successfully explain?" rate proxy:
+# `rate(helios_shap_inference_seconds_count[5m])` vs.
+# `rate(helios_anomalies_detected_total[5m])` should track 1:1 when SHAP is
+# healthy.
+shap_inference_latency = get_or_create_histogram(
+    "helios_shap_inference_seconds",
+    "SHAP attribution computation time per anomaly (seconds)",
+)

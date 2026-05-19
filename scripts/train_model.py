@@ -425,12 +425,21 @@ def main():
     metrics = evaluate_model(y, y_pred)
 
     # Save model in format expected by AnomalyDetector
+    # Include a small SHAP background sample (scaled training rows) so the
+    # detection consumer can build a TreeExplainer at startup.
+    rng = np.random.default_rng(42)
+    X_scaled_all = trainer.scaler.transform(X)
+    n_bg = min(100, X_scaled_all.shape[0])
+    bg_idx = rng.choice(X_scaled_all.shape[0], n_bg, replace=False)
+    shap_background = X_scaled_all[bg_idx].copy()
+
     model_file = output_path / 'isolation_forest.pkl'
     model_data = {
         "model": trainer.model,
         "scaler": trainer.scaler,
         "threshold": -0.5,  # Default threshold for Isolation Forest
         "feature_names": list(X.columns),
+        "shap_background": shap_background,
     }
     print(f"\nSaving complete model to {model_file}")
     joblib.dump(model_data, model_file)

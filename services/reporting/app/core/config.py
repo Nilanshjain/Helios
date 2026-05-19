@@ -7,10 +7,25 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     """Application settings"""
 
-    model_config = SettingsConfigDict(env_file=".env", case_sensitive=False)
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        case_sensitive=False,
+        extra="ignore",
+    )
 
     # Report Generator
-    report_generator_mode: str = "mock"  # 'claude' or 'mock'
+    # 'gemini' (default), 'claude', or 'mock'. Missing/invalid keys for the
+    # selected provider cause the consumer to fall back to mock at startup.
+    report_generator_mode: str = "gemini"
+
+    # Gemini (default — free tier on aistudio.google.com)
+    gemini_api_key: str = ""
+    gemini_model: str = "gemini-1.5-flash"
+    gemini_max_tokens: int = 1500
+    gemini_temperature: float = 0.3
+    gemini_max_retries: int = 3
+
+    # Claude (alternative provider)
     anthropic_api_key: str = ""
     claude_model: str = "claude-3-5-sonnet-20241022"
     claude_max_tokens: int = 1500
@@ -60,8 +75,13 @@ class Settings(BaseSettings):
 
     @property
     def use_claude(self) -> bool:
-        """Check if Claude should be used"""
+        """Check if Claude should be used (legacy flag kept for metrics labels)."""
         return self.report_generator_mode == "claude" and bool(self.anthropic_api_key)
+
+    @property
+    def use_gemini(self) -> bool:
+        """Check if Gemini should be used (default provider)."""
+        return self.report_generator_mode == "gemini" and bool(self.gemini_api_key)
 
 
 # Global settings instance

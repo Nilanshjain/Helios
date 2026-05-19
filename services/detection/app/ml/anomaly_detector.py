@@ -10,8 +10,14 @@ import joblib
 from app.core.logging import get_logger
 from app.core.config import settings
 from app.ml.feature_engineering import FeatureExtractor
+from app.ml.explainability import ShapExplainer, SHAP_AVAILABLE
 
 logger = get_logger(__name__)
+
+# Cap on how many scaled training rows we keep on the detector for use as
+# SHAP background data. Larger samples give better attribution stability but
+# slow down TreeExplainer initialization.
+_DEFAULT_BACKGROUND_SIZE = 100
 
 
 class AnomalyDetector:
@@ -48,6 +54,11 @@ class AnomalyDetector:
         self.feature_extractor = FeatureExtractor(min_events=settings.min_events_per_window)
         self.threshold = threshold
         self.is_trained = False
+
+        # SHAP background sample (scaled training rows). Populated by train()
+        # or loaded from disk; used by explain() to lazily build a TreeExplainer.
+        self._shap_background: Optional[np.ndarray] = None
+        self._shap_explainer: Optional[ShapExplainer] = None
 
     def train(self, training_events: List[List[Dict[str, Any]]]) -> Dict[str, Any]:
         """
@@ -93,6 +104,14 @@ class AnomalyDetector:
         # Train model
         self.model.fit(X_scaled)
         self.is_trained = True
+
+        # Keep a small SHAP background sample (scaled). Random subset so the
+        # background reflects the training distribution while staying small
+        # enough for fast TreeExplainer init at predict time.
+        n_bg = min(_DEFAULT_BACKGROUND_SIZE, X_scaled.shape[0])
+        rng = np.random.default_rng(42)
+        idx = rng.choice(X_scaled.shape[0], n_bg, replace=False)
+        self._shap_background = X_scaled[idx].copy()
 
         # Calculate training statistics
         scores = self.model.decision_function(X_scaled)
@@ -201,10 +220,15 @@ class AnomalyDetector:
             "scaler": self.scaler,
             "threshold": self.threshold,
             "feature_names": self.feature_extractor.get_feature_names(),
+            "shap_background": self._shap_background,
         }
 
         joblib.dump(model_data, save_path)
-        logger.info("model_saved", path=save_path)
+        logger.info(
+            "model_saved",
+            path=save_path,
+            has_shap_background=self._shap_background is not None,
+        )
 
     @classmethod
     def load(cls, path: Optional[str] = None) -> "AnomalyDetector":
@@ -229,5 +253,52 @@ class AnomalyDetector:
         detector.scaler = model_data["scaler"]
         detector.is_trained = True
 
-        logger.info("model_loaded", path=load_path)
+        # Optional SHAP background; older models won't have this key.
+        detector._shap_background = model_data.get("shap_background")
+
+        logger.info(
+            "model_loaded",
+            path=load_path,
+            has_shap_background=detector._shap_background is not None,
+        )
         return detector
+
+    def explain(self, features: np.ndarray) -> Optional[Dict[str, Any]]:
+        """Compute SHAP attributions for an already-extracted feature vector.
+
+        ``features`` must be the raw 12-feature row (shape ``(1, n_features)``)
+        returned by :meth:`AnomalyDetector.predict` under the ``features`` key.
+        It is scaled with the stored StandardScaler before being passed to the
+        explainer, so attributions live in scaled-feature space — that is the
+        space the IsolationForest itself sees.
+
+        The explainer is built lazily on the first call and cached. Returns
+        ``None`` (with a warning logged once) if SHAP is not installed or no
+        background sample is available — callers should treat the absence of
+        an explanation as a soft failure, not a hard error.
+        """
+        if not SHAP_AVAILABLE:
+            return None
+        if self._shap_background is None:
+            logger.warning("shap_no_background_data")
+            return None
+
+        if self._shap_explainer is None:
+            try:
+                explainer = ShapExplainer()
+                explainer.fit(
+                    self.model,
+                    self._shap_background,
+                    self.feature_extractor.get_feature_names(),
+                )
+                self._shap_explainer = explainer
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("shap_explainer_init_failed", error=str(exc))
+                return None
+
+        try:
+            features_scaled = self.scaler.transform(features)
+            return self._shap_explainer.explain(features_scaled)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("shap_explain_failed", error=str(exc))
+            return None

@@ -1,8 +1,92 @@
 """Prompt templates for report generation"""
 
 import json
-from typing import Dict, Any
+from typing import Dict, Any, List
 from app.generators.base import ReportContext
+
+
+def build_structured_prompt(context: ReportContext) -> str:
+    """SHAP-aware prompt that asks the LLM to return JSON matching IncidentReport.
+
+    Used by both ``GeminiGenerator`` (with ``response_schema``) and
+    ``ClaudeGenerator`` (with an explicit "JSON only" instruction). The top
+    SHAP features from the detection layer are injected into the prompt so
+    the root-cause hypothesis can be grounded in concrete attributions
+    instead of generic SRE boilerplate.
+    """
+    anomaly = context.anomaly
+    metrics = context.metrics
+    events = context.events
+    top_features: List[Dict[str, Any]] = anomaly.get("top_features", []) or []
+
+    feature_block_lines: list[str] = []
+    if top_features:
+        feature_block_lines.append("SHAP attributions (top features driving the anomaly score):")
+        for f in top_features:
+            direction = f.get("direction", "unknown")
+            feature_block_lines.append(
+                f"  - {f.get('name', '?')}: value={f.get('value', float('nan')):.3f}, "
+                f"shap={f.get('shap', 0.0):+.3f} ({direction})"
+            )
+        feature_block_lines.append(
+            "Negative SHAP pushes the IsolationForest score lower (more anomalous); "
+            "positive SHAP pulls toward normal."
+        )
+    else:
+        feature_block_lines.append(
+            "No SHAP attributions available — reason from the raw feature dict below only."
+        )
+    shap_block = "\n".join(feature_block_lines)
+
+    return f"""You are a senior SRE writing an incident report from ML-detected anomaly evidence.
+
+## Anomaly evidence
+- Incident ID: {anomaly.get('id', 'unknown')}
+- Service: {anomaly.get('service', 'unknown')}
+- Detected at: {anomaly.get('timestamp', 'unknown')}
+- Severity: {anomaly.get('severity', 'unknown')}
+- IsolationForest score: {anomaly.get('score', 0):.3f} (threshold {anomaly.get('threshold', 0):.3f})
+
+## Top contributing features
+{shap_block}
+
+## Window-level feature values
+```json
+{json.dumps(anomaly.get('features', {}), indent=2)}
+```
+
+## Aggregated service metrics during the window
+{_format_metrics(metrics)}
+
+## Sample events ({min(len(events), 10)} of {len(events)})
+{_format_events(events[:10])}
+
+## Required output
+Respond with **JSON only** (no markdown fences, no commentary) matching this schema:
+
+{{
+  "incident_id": "{anomaly.get('id', 'unknown')}",
+  "service": "{anomaly.get('service', 'unknown')}",
+  "detected_at": "{anomaly.get('timestamp', 'unknown')}",
+  "severity": "LOW|MEDIUM|HIGH|CRITICAL",
+  "confidence": 0.0-1.0,
+  "executive_summary": "2-3 sentences for the oncall pager.",
+  "root_cause_hypothesis": "Specific hypothesis explicitly referencing the top SHAP feature names by name.",
+  "contributing_features": [
+    {{"name": "<feature>", "value": <number>, "shap": <number>, "direction": "toward_anomaly|toward_normal"}}
+  ],
+  "recommended_actions": [
+    {{"timeframe": "immediate|short_term|long_term", "action": "concrete step", "rationale": "evidence-grounded reason"}}
+  ],
+  "monitoring_checks": ["signal_or_metric_name_1", "..."]
+}}
+
+Constraints:
+- The root_cause_hypothesis MUST reference at least one feature name from the SHAP block above.
+- recommended_actions MUST include at least one item per timeframe.
+- Severity MUST be one of LOW, MEDIUM, HIGH, CRITICAL (uppercase).
+- Confidence is your honest estimate, not a fixed value.
+- Do not invent metrics that aren't in the evidence."""
 
 
 def build_incident_report_prompt(context: ReportContext) -> str:

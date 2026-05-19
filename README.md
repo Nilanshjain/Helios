@@ -34,10 +34,11 @@ Helios is an observability platform designed to monitor microservices infrastruc
 **Key Features:**
 - High-performance event ingestion with Go-based goroutine concurrency
 - Real-time anomaly detection using Isolation Forest with 12-feature engineering pipeline, evaluated on NAB + SMD
+- **SHAP attributions wired into the live consumer** — every anomaly alert carries the top features driving the score, surfaced in Grafana and grounded in the LLM root-cause hypothesis
 - Event-driven architecture with Apache Kafka (10 partitions, snappy compression)
 - Time-series optimized storage with TimescaleDB hypertables
 - Validation-driven threshold selection with MLflow experiment tracking (`mlruns/`)
-- LLM-powered incident report generation (Gemini default, Claude alternative)
+- **Multi-provider LLM abstraction** — same Pydantic `IncidentReport` schema served by Gemini (default, free tier) or Claude (alternative), selectable via `REPORT_GENERATOR_MODE` env var; mock mode is first-class
 - Comprehensive monitoring with Prometheus and Grafana
 - Multi-language microservices architecture (Go for throughput, Python for ML/AI)
 
