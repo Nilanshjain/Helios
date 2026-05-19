@@ -71,6 +71,53 @@ groups:
           summary: "ML inference is slow"
           description: "P95 inference time is {{ $value }}s (threshold: 0.5s)"
 
+      # Feature drift: PSI > 0.25 on any feature.
+      # Requires scripts/drift_check.py to push helios_feature_psi to
+      # Prometheus pushgateway (see docs/MLOPS.md). The metric carries a
+      # `feature` label so the alert names the offending feature.
+      - alert: FeatureDriftMajor
+        expr: max(helios_feature_psi) by (feature) > 0.25
+        for: 15m
+        labels:
+          severity: warning
+          service: detection
+          category: mlops
+        annotations:
+          summary: "Major feature drift on {{ $labels.feature }} (PSI > 0.25)"
+          description: "PSI = {{ $value | printf \"%.2f\" }} on feature `{{ $labels.feature }}`. The production distribution has shifted from the model's training distribution; retraining is recommended. Run `python scripts/drift_check.py` and consult docs/MLOPS.md."
+
+      # Stale model: alert if no retraining for 30+ days.
+      - alert: StaleModel
+        expr: helios_model_prediction_age_days > 30
+        for: 1h
+        labels:
+          severity: warning
+          service: detection
+          category: mlops
+        annotations:
+          summary: "Model has not been retrained in {{ $value | printf \"%.0f\" }} days"
+          description: "The loaded IsolationForest was trained {{ $value | printf \"%.0f\" }} days ago. Consider re-running `python scripts/train_model.py` against fresh production data."
+
+      # Prediction-score distribution shift.
+      # Compares last-1h median against last-24h median; >50% relative
+      # change suggests the model is seeing very different data.
+      - alert: PredictionScoreShift
+        expr: |
+          abs(
+            histogram_quantile(0.5, rate(helios_model_prediction_score_bucket[1h]))
+            - histogram_quantile(0.5, rate(helios_model_prediction_score_bucket[24h]))
+          )
+          / abs(histogram_quantile(0.5, rate(helios_model_prediction_score_bucket[24h])) + 1e-9)
+          > 0.5
+        for: 30m
+        labels:
+          severity: warning
+          service: detection
+          category: mlops
+        annotations:
+          summary: "Prediction-score median has shifted >50% vs the 24h baseline"
+          description: "Median model score over the last hour differs from the 24h median by more than 50%. Possible data drift or upstream change."
+
   - name: helios_reporting_alerts
     interval: 30s
     rules:

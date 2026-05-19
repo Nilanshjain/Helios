@@ -1,6 +1,6 @@
 """Prometheus metrics for detection consumer with safe registration"""
 
-from prometheus_client import Counter, Histogram, Gauge, CollectorRegistry, REGISTRY
+from prometheus_client import Counter, Histogram, Gauge, Summary, CollectorRegistry, REGISTRY
 
 
 def get_or_create_counter(name: str, documentation: str, labelnames=None):
@@ -45,6 +45,17 @@ def get_or_create_gauge(name: str, documentation: str, labelnames=None):
     return Gauge(name, documentation, labelnames or [])
 
 
+def get_or_create_summary(name: str, documentation: str, labelnames=None):
+    """Get existing summary or create new one"""
+    try:
+        existing = REGISTRY._names_to_collectors.get(name)
+        if existing is not None:
+            return existing
+    except AttributeError:
+        pass
+    return Summary(name, documentation, labelnames or [])
+
+
 # Safe metric creation
 events_processed = get_or_create_counter(
     "helios_detection_events_processed_total",
@@ -77,4 +88,33 @@ window_size_gauge = get_or_create_gauge(
 shap_inference_latency = get_or_create_histogram(
     "helios_shap_inference_seconds",
     "SHAP attribution computation time per anomaly (seconds)",
+)
+
+# Phase-4 ML-observability metrics.
+#
+# Distribution of IsolationForest decision-function scores across every
+# window the consumer evaluates (not just anomalies). Shift in this
+# histogram is the earliest signal that the model is seeing data unlike
+# what it was trained on — a leading indicator for feature drift before
+# PSI even runs.
+prediction_score = get_or_create_histogram(
+    "helios_model_prediction_score",
+    "IsolationForest decision_function score per window",
+)
+
+# Quantile snapshot of every feature value the model sees in production.
+# Compared against the model's training distribution by scripts/drift_check.py
+# (PSI) to detect data drift. One series per feature keeps cardinality at 12.
+feature_value = get_or_create_summary(
+    "helios_model_feature_value",
+    "Per-feature value distribution seen in production",
+    ["feature"],
+)
+
+# Days since the loaded model was trained. Updated once at startup and
+# again on each model reload. Lets us alert on stale models even when
+# everything else looks healthy.
+prediction_age_days = get_or_create_gauge(
+    "helios_model_prediction_age_days",
+    "Days since the currently-loaded model was trained",
 )

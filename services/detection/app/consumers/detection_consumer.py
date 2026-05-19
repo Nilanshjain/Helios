@@ -18,6 +18,9 @@ from app.consumers.metrics import (
     events_processed,
     anomalies_detected,
     detection_latency,
+    feature_value,
+    prediction_age_days,
+    prediction_score,
     shap_inference_latency,
     window_size_gauge,
 )
@@ -70,9 +73,32 @@ class DetectionConsumer:
         try:
             self.detector = AnomalyDetector.load()
             logger.info("model_loaded_successfully")
+            self._update_model_age_metric()
         except Exception as e:
             logger.error("model_loading_failed", error=str(e))
             raise
+
+    def _update_model_age_metric(self) -> None:
+        """Set helios_model_prediction_age_days from models/model_config.json.
+
+        ``training_date`` is written by scripts/train_model.py at training
+        time. If the config is missing or malformed we leave the gauge at
+        zero — preferable to crashing the consumer over a metric.
+        """
+        try:
+            from pathlib import Path
+
+            config_path = Path(settings.model_path).resolve().parent / "model_config.json"
+            if not config_path.exists():
+                logger.warning("model_config_missing_for_age_metric", path=str(config_path))
+                return
+            data = json.loads(config_path.read_text(encoding="utf-8"))
+            trained_at = datetime.fromisoformat(data["training_date"])
+            age_days = (datetime.now() - trained_at).total_seconds() / 86400.0
+            prediction_age_days.set(max(0.0, age_days))
+            logger.info("model_age_metric_updated", age_days=age_days)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("model_age_metric_failed", error=str(exc))
 
     def start(self) -> None:
         """Start consuming and detecting anomalies"""
@@ -189,6 +215,16 @@ class DetectionConsumer:
         try:
             # Run ML inference
             result = self.detector.predict(events)
+
+            # Emit ML-observability metrics for every window, not just
+            # anomalies. The shape of these distributions over time is what
+            # scripts/drift_check.py and the model-health dashboard read.
+            try:
+                prediction_score.observe(float(result["score"]))
+                for name, val in zip(result["feature_names"], result["features"]):
+                    feature_value.labels(feature=name).observe(float(val))
+            except Exception as metric_exc:  # noqa: BLE001
+                logger.debug("ml_metric_emit_failed", error=str(metric_exc))
 
             if result["is_anomaly"]:
                 self._handle_anomaly(service, result, events)
