@@ -30,6 +30,7 @@ models/drift/
 # Personal interview-prep notes — kept local, never pushed.
 docs/INTERVIEW_NOTES.md
 docs/RESUME.md
+docs/RECORDING_PLAYBOOK.md
 
 # Go specific
 *.exe
