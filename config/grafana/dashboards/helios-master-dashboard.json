@@ -7,15 +7,15 @@
     "ai"
   ],
   "timezone": "browser",
-  "schemaVersion": 16,
+  "schemaVersion": 39,
   "version": 0,
   "refresh": "5s",
   "panels": [
     {
       "id": 1,
       "gridPos": {
-        "h": 1,
         "w": 24,
+        "h": 1,
         "x": 0,
         "y": 0
       },
@@ -26,146 +26,199 @@
     {
       "id": 2,
       "gridPos": {
-        "h": 8,
         "w": 12,
+        "h": 9,
         "x": 0,
-        "y": 1
+        "y": 5
       },
-      "type": "graph",
+      "type": "timeseries",
       "title": "Event Ingestion Rate (events/sec)",
-      "datasource": "Prometheus",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "helios-prometheus"
+      },
       "targets": [
         {
           "expr": "rate(helios_events_ingested_total[1m])",
           "legendFormat": "{{exported_service}} - {{level}}",
-          "refId": "A"
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "helios-prometheus"
+          }
         }
       ],
-      "yaxes": [
-        {
-          "format": "short",
-          "label": "events/sec",
-          "show": true
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
         },
-        {
-          "format": "short",
-          "show": false
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
         }
-      ],
-      "xaxis": {
-        "show": true
-      },
-      "lines": true,
-      "fill": 1,
-      "linewidth": 2,
-      "legend": {
-        "show": true,
-        "values": true,
-        "current": true
-      },
-      "tooltip": {
-        "shared": true,
-        "sort": 2,
-        "value_type": "individual"
       }
     },
     {
       "id": 3,
       "gridPos": {
-        "h": 8,
         "w": 12,
+        "h": 9,
         "x": 12,
-        "y": 1
+        "y": 5
       },
-      "type": "graph",
+      "type": "timeseries",
       "title": "Total Events Ingested",
-      "datasource": "Prometheus",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "helios-prometheus"
+      },
       "targets": [
         {
           "expr": "sum(helios_events_ingested_total) by (exported_service)",
           "legendFormat": "{{exported_service}}",
-          "refId": "A"
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "helios-prometheus"
+          }
         }
       ],
-      "yaxes": [
-        {
-          "format": "short",
-          "label": "total events",
-          "show": true
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
         },
-        {
-          "format": "short",
-          "show": false
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
         }
-      ],
-      "lines": true,
-      "fill": 1,
-      "linewidth": 2,
-      "stack": true,
-      "legend": {
-        "show": true,
-        "values": true,
-        "current": true
       }
     },
     {
       "id": 4,
       "gridPos": {
-        "h": 8,
-        "w": 8,
+        "w": 24,
+        "h": 9,
         "x": 0,
-        "y": 9
+        "y": 14
       },
-      "type": "graph",
+      "type": "timeseries",
       "title": "Ingestion Latency (p50, p95, p99)",
-      "datasource": "Prometheus",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "helios-prometheus"
+      },
       "targets": [
         {
           "expr": "histogram_quantile(0.50, sum(rate(helios_ingestion_latency_seconds_bucket[5m])) by (le))",
           "legendFormat": "p50",
-          "refId": "A"
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "helios-prometheus"
+          }
         },
         {
           "expr": "histogram_quantile(0.95, sum(rate(helios_ingestion_latency_seconds_bucket[5m])) by (le))",
           "legendFormat": "p95",
-          "refId": "B"
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "helios-prometheus"
+          }
         },
         {
           "expr": "histogram_quantile(0.99, sum(rate(helios_ingestion_latency_seconds_bucket[5m])) by (le))",
           "legendFormat": "p99",
-          "refId": "C"
+          "refId": "C",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "helios-prometheus"
+          }
         }
       ],
-      "yaxes": [
-        {
-          "format": "s",
-          "label": "latency",
-          "show": true
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
         },
-        {
-          "format": "short",
-          "show": false
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
         }
-      ],
-      "lines": true,
-      "fill": 0,
-      "linewidth": 2
+      }
     },
     {
       "id": 5,
       "gridPos": {
-        "h": 8,
-        "w": 8,
-        "x": 8,
-        "y": 9
+        "w": 12,
+        "h": 4,
+        "x": 0,
+        "y": 1
       },
       "type": "stat",
       "title": "Total Events (Last Hour)",
-      "datasource": "Prometheus",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "helios-prometheus"
+      },
       "targets": [
         {
           "expr": "sum(increase(helios_events_ingested_total[1h]))",
-          "refId": "A"
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "helios-prometheus"
+          }
         }
       ],
       "options": {
@@ -202,18 +255,25 @@
     {
       "id": 6,
       "gridPos": {
-        "h": 8,
-        "w": 8,
-        "x": 16,
-        "y": 9
+        "w": 12,
+        "h": 4,
+        "x": 12,
+        "y": 1
       },
       "type": "stat",
       "title": "Error Rate %",
-      "datasource": "Prometheus",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "helios-prometheus"
+      },
       "targets": [
         {
           "expr": "sum(rate(helios_events_ingested_total{level=~\"ERROR|CRITICAL\"}[5m])) / sum(rate(helios_events_ingested_total[5m])) * 100",
-          "refId": "A"
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "helios-prometheus"
+          }
         }
       ],
       "options": {
@@ -251,10 +311,10 @@
     {
       "id": 7,
       "gridPos": {
-        "h": 1,
         "w": 24,
+        "h": 1,
         "x": 0,
-        "y": 17
+        "y": 23
       },
       "type": "row",
       "title": " Database Metrics (TimescaleDB)",
@@ -263,90 +323,130 @@
     {
       "id": 8,
       "gridPos": {
-        "h": 8,
         "w": 12,
+        "h": 9,
         "x": 0,
-        "y": 18
+        "y": 24
       },
-      "type": "graph",
+      "type": "timeseries",
       "title": "Database Write Rate by Service",
-      "datasource": "TimescaleDB-Direct",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "helios-timescaledb"
+      },
       "targets": [
         {
           "rawSql": "SELECT\n  time_bucket('1 minute', time) AS time,\n  service AS metric,\n  COUNT(*) AS value\nFROM events\nWHERE $__timeFilter(time)\nGROUP BY 1, 2\nORDER BY 1",
           "format": "time_series",
-          "refId": "A"
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "helios-timescaledb"
+          }
         }
       ],
-      "yaxes": [
-        {
-          "format": "short",
-          "label": "events/min",
-          "show": true
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
         },
-        {
-          "format": "short",
-          "show": false
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
         }
-      ],
-      "lines": true,
-      "fill": 1,
-      "linewidth": 2,
-      "legend": {
-        "show": true,
-        "values": true,
-        "current": true
       }
     },
     {
       "id": 9,
       "gridPos": {
-        "h": 8,
         "w": 12,
+        "h": 9,
         "x": 12,
-        "y": 18
+        "y": 24
       },
-      "type": "graph",
+      "type": "timeseries",
       "title": "Database Write Latency (avg)",
-      "datasource": "TimescaleDB-Direct",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "helios-timescaledb"
+      },
       "targets": [
         {
           "rawSql": "SELECT\n  time_bucket('1 minute', time) AS time,\n  AVG(EXTRACT(EPOCH FROM (ingested_at - time)) * 1000) AS value\nFROM events\nWHERE $__timeFilter(time) AND ingested_at IS NOT NULL\nGROUP BY 1\nORDER BY 1",
           "format": "time_series",
-          "refId": "A"
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "helios-timescaledb"
+          }
         }
       ],
-      "yaxes": [
-        {
-          "format": "ms",
-          "label": "latency",
-          "show": true
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
         },
-        {
-          "format": "short",
-          "show": false
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
         }
-      ],
-      "lines": true,
-      "fill": 1,
-      "linewidth": 2
+      }
     },
     {
       "id": 10,
       "gridPos": {
-        "h": 8,
-        "w": 12,
+        "w": 14,
+        "h": 10,
         "x": 0,
-        "y": 26
+        "y": 33
       },
       "type": "table",
       "title": "Events by Service (Last Hour)",
-      "datasource": "TimescaleDB-Direct",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "helios-timescaledb"
+      },
       "targets": [
         {
           "rawSql": "SELECT\n  service AS \"Service\",\n  COUNT(*) AS \"Event Count\",\n  COUNT(CASE WHEN level IN ('ERROR', 'CRITICAL') THEN 1 END) AS \"Errors\",\n  ROUND(AVG(EXTRACT(EPOCH FROM (ingested_at - time)) * 1000), 2) AS \"Avg Latency (ms)\"\nFROM events\nWHERE time > NOW() - INTERVAL '1 hour' AND ingested_at IS NOT NULL\nGROUP BY service\nORDER BY COUNT(*) DESC",
           "format": "table",
-          "refId": "A"
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "helios-timescaledb"
+          }
         }
       ],
       "options": {
@@ -356,19 +456,26 @@
     {
       "id": 11,
       "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 26
+        "w": 10,
+        "h": 10,
+        "x": 14,
+        "y": 33
       },
       "type": "piechart",
       "title": "Events by Log Level",
-      "datasource": "Prometheus",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "helios-prometheus"
+      },
       "targets": [
         {
           "expr": "sum(helios_events_ingested_total) by (level)",
           "legendFormat": "{{level}}",
-          "refId": "A"
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "helios-prometheus"
+          }
         }
       ],
       "options": {
@@ -396,10 +503,10 @@
     {
       "id": 12,
       "gridPos": {
-        "h": 1,
         "w": 24,
+        "h": 1,
         "x": 0,
-        "y": 34
+        "y": 43
       },
       "type": "row",
       "title": " ML & AI Metrics",
@@ -408,58 +515,78 @@
     {
       "id": 13,
       "gridPos": {
-        "h": 8,
-        "w": 8,
+        "w": 24,
+        "h": 9,
         "x": 0,
-        "y": 35
+        "y": 48
       },
-      "type": "graph",
+      "type": "timeseries",
       "title": "Anomalies Detected by Severity",
-      "datasource": "TimescaleDB-Direct",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "helios-timescaledb"
+      },
       "targets": [
         {
-          "rawSql": "SELECT\n  time_bucket('1 day', generated_at) AS time,\n  severity AS metric,\n  COUNT(*) AS value\nFROM incident_reports\nWHERE generated_at > NOW() - INTERVAL '7 days'\nGROUP BY 1, 2\nORDER BY 1",
+          "rawSql": "SELECT\n  time_bucket('1 hour', time) AS time,\n  severity AS metric,\n  COUNT(*) AS value\nFROM anomalies\nWHERE $__timeFilter(time)\nGROUP BY 1, 2\nORDER BY 1",
           "format": "time_series",
-          "refId": "A"
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "helios-timescaledb"
+          }
         }
       ],
-      "yaxes": [
-        {
-          "format": "short",
-          "label": "anomalies",
-          "show": true
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
         },
-        {
-          "format": "short",
-          "show": false
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
         }
-      ],
-      "lines": true,
-      "fill": 1,
-      "linewidth": 2,
-      "stack": true,
-      "legend": {
-        "show": true,
-        "values": true,
-        "current": true
       }
     },
     {
       "id": 14,
       "gridPos": {
-        "h": 8,
-        "w": 8,
-        "x": 8,
-        "y": 35
+        "w": 12,
+        "h": 4,
+        "x": 0,
+        "y": 44
       },
       "type": "stat",
       "title": "Total Reports Generated (24h)",
-      "datasource": "TimescaleDB-Direct",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "helios-timescaledb"
+      },
       "targets": [
         {
           "rawSql": "SELECT\n  COUNT(*) AS \"Reports Generated\"\nFROM incident_reports\nWHERE generated_at > NOW() - INTERVAL '24 hours'",
           "format": "table",
-          "refId": "A"
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "helios-timescaledb"
+          }
         }
       ],
       "options": {
@@ -496,19 +623,26 @@
     {
       "id": 15,
       "gridPos": {
-        "h": 8,
-        "w": 8,
-        "x": 16,
-        "y": 35
+        "w": 12,
+        "h": 4,
+        "x": 12,
+        "y": 44
       },
       "type": "stat",
       "title": "AI Report Cost (24h)",
-      "datasource": "TimescaleDB-Direct",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "helios-timescaledb"
+      },
       "targets": [
         {
           "rawSql": "SELECT\n  ROUND(SUM(cost_usd)::numeric, 4) AS \"Total Cost ($)\"\nFROM incident_reports\nWHERE generated_at > NOW() - INTERVAL '24 hours'",
           "format": "table",
-          "refId": "A"
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "helios-timescaledb"
+          }
         }
       ],
       "options": {
@@ -526,19 +660,26 @@
     {
       "id": 16,
       "gridPos": {
-        "h": 8,
-        "w": 12,
+        "w": 24,
+        "h": 10,
         "x": 0,
-        "y": 43
+        "y": 57
       },
       "type": "table",
       "title": "Recent Incident Reports",
-      "datasource": "TimescaleDB-Direct",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "helios-timescaledb"
+      },
       "targets": [
         {
           "rawSql": "SELECT\n  report_id AS \"Report ID\",\n  service AS \"Service\",\n  severity AS \"Severity\",\n  model AS \"AI Model\",\n  tokens_used AS \"Tokens\",\n  ROUND(cost_usd::numeric, 4) AS \"Cost ($)\",\n  generated_at AS \"Generated At\"\nFROM incident_reports\nORDER BY generated_at DESC\nLIMIT 10",
           "format": "table",
-          "refId": "A"
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "helios-timescaledb"
+          }
         }
       ],
       "options": {
@@ -548,43 +689,62 @@
     {
       "id": 17,
       "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 43
+        "w": 24,
+        "h": 9,
+        "x": 0,
+        "y": 67
       },
-      "type": "graph",
+      "type": "timeseries",
       "title": "Consumer Batch Size (Events/min)",
-      "datasource": "TimescaleDB-Direct",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "helios-timescaledb"
+      },
       "targets": [
         {
           "rawSql": "SELECT\n  time_bucket('1 minute', time) AS time,\n  COUNT(*) AS value\nFROM events\nWHERE $__timeFilter(time)\nGROUP BY 1\nORDER BY 1",
           "format": "time_series",
-          "refId": "A"
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "helios-timescaledb"
+          }
         }
       ],
-      "yaxes": [
-        {
-          "format": "short",
-          "label": "events/min",
-          "show": true
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 12,
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "color": {
+            "mode": "palette-classic"
+          }
         },
-        {
-          "format": "short",
-          "show": false
+        "overrides": []
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
         }
-      ],
-      "lines": true,
-      "fill": 1,
-      "linewidth": 2
+      }
     },
     {
       "id": 18,
       "gridPos": {
-        "h": 6,
         "w": 24,
+        "h": 5,
         "x": 0,
-        "y": 51
+        "y": 86
       },
       "type": "text",
       "title": "System Overview",
@@ -596,20 +756,27 @@
     {
       "id": 19,
       "gridPos": {
-        "h": 9,
         "w": 24,
+        "h": 10,
         "x": 0,
-        "y": 57
+        "y": 76
       },
       "type": "table",
       "title": "Recent Anomalies \u2014 Top SHAP Feature",
       "description": "Last 20 anomalies with the single top SHAP-attributed feature driving the score. Negative SHAP pushes the IsolationForest score lower (more anomalous).",
-      "datasource": "TimescaleDB-Direct",
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "helios-timescaledb"
+      },
       "targets": [
         {
           "rawSql": "SELECT\n  time AS \"Time\",\n  service AS \"Service\",\n  severity AS \"Severity\",\n  ROUND(score::numeric, 3) AS \"IF score\",\n  (features->'top_features'->0->>'name') AS \"Top feature\",\n  ROUND(((features->'top_features'->0->>'value')::numeric), 3) AS \"Value\",\n  ROUND(((features->'top_features'->0->>'shap')::numeric), 3) AS \"SHAP\",\n  (features->'top_features'->0->>'direction') AS \"Direction\"\nFROM anomalies\nWHERE time > NOW() - INTERVAL '24 hours'\n  AND features ? 'top_features'\nORDER BY time DESC\nLIMIT 20",
           "format": "table",
-          "refId": "A"
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "helios-timescaledb"
+          }
         }
       ],
       "options": {

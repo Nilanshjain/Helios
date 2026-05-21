@@ -32,6 +32,13 @@ docs/INTERVIEW_NOTES.md
 docs/RESUME.md
 docs/RECORDING_PLAYBOOK.md
 
+# Personal learning notes and day logs — kept local, not part of the repo.
+docs/learning/
+docs/implementation/
+
+# Raw screenshot dump — curated copies live in docs/images/.
+screenshots/
+
 # Go specific
 *.exe
 *.exe~

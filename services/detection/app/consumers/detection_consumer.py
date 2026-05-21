@@ -353,7 +353,7 @@ class DetectionConsumer:
             )
         return top
 
-    def _should_suppress_alert(self, service: str, cooldown_minutes: int = 10) -> bool:
+    def _should_suppress_alert(self, service: str, cooldown_minutes: int = 2) -> bool:
         """
         Check if alert should be suppressed based on recent alerts.
 

@@ -1,22 +1,30 @@
 apiVersion: 1
 
 datasources:
+  # Pinned UID so dashboard panels can reference it deterministically as
+  # {"type": "prometheus", "uid": "helios-prometheus"} — string-name
+  # resolution is unreliable across Grafana schema migrations.
   - name: Prometheus
+    uid: helios-prometheus
     type: prometheus
     access: proxy
     url: http://prometheus:9090
     isDefault: true
     editable: true
 
-  - name: TimescaleDB
+  # Pinned UID. Dashboard panels reference this as
+  # {"type": "grafana-postgresql-datasource", "uid": "helios-timescaledb"}.
+  - name: TimescaleDB-Direct
+    uid: helios-timescaledb
     type: postgres
     access: proxy
     url: timescaledb:5432
-    database: helios
     user: postgres
-    secureJsonData:
-      password: postgres
+    editable: true
     jsonData:
+      database: helios
       sslmode: disable
       postgresVersion: 1500
       timescaledb: true
+    secureJsonData:
+      password: postgres

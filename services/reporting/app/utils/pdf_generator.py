@@ -285,8 +285,11 @@ class PDFGenerator:
             <title>{title}</title>
         </head>
         <body data-generated="{generated_date}">
+            <!-- No emoji here: a single emoji glyph makes WeasyPrint load an
+                 emoji-fallback font that mis-maps U+0020 (space) across the
+                 whole PDF text layer, garbling copy-paste / search. -->
             <div class="header-logo">
-                🔭 HELIOS OBSERVABILITY PLATFORM
+                HELIOS OBSERVABILITY PLATFORM
             </div>
             {metadata_html}
             {body_html}

@@ -44,9 +44,14 @@ These reports demonstrate three properties that the Phase 3 design promised:
 | File | Severity | Why it's interesting |
 |---|---|---|
 | `payment-service-CRITICAL.md` | CRITICAL | Most dramatic — 50.5% error rate, p99=6430ms, infers connection-pool exhaustion |
-| `auth-service-HIGH.md` | HIGH | Longest output (2277 chars); names all three top SHAP features in the hypothesis |
-| `order-service-HIGH.md` | HIGH | Most recent — current state of the pipeline at recording time |
+| `auth-service-HIGH.md` | HIGH | Longest output; names all three top SHAP features in the hypothesis |
+| `order-service-HIGH.md` | HIGH | Mid-incident snapshot of the pipeline |
 | `inventory-service-HIGH.md` | HIGH | Clean concise example showcasing the schema |
+
+Rendered PDF versions — the same reports as the reporting service produces them
+with WeasyPrint — are in [`pdf/`](pdf/).
+[`pdf/payment-service-CRITICAL-incident-report.pdf`](pdf/payment-service-CRITICAL-incident-report.pdf)
+is the one to open first.
 
 ## Reproducing one of these
 

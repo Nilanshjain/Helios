@@ -21,11 +21,40 @@ between is real.
 from __future__ import annotations
 
 import json
+import logging
+import os
 import sys
 import time
 import traceback
+import warnings
 from datetime import datetime
 from pathlib import Path
+
+# --- Quiet mode -------------------------------------------------------------
+# This is a verification script. The detection/reporting service packages log
+# via structlog (PrintLogger, no level filter by default), scikit-learn /
+# pydantic emit import-time warnings, and the Gemini SDK's gRPC core prints
+# absl/ALTS notices. Silence all of it so the output is exactly the pipeline
+# steps and their results.
+#
+# The dry-run uses the offline MockGenerator for report generation:
+# deterministic, zero-cost, no network. The live Gemini path is exercised
+# separately by scripts/diagnose_reporting.py.
+warnings.filterwarnings("ignore")
+logging.disable(logging.CRITICAL)
+os.environ["REPORT_GENERATOR_MODE"] = "mock"
+os.environ["GRPC_VERBOSITY"] = "NONE"
+os.environ["GLOG_minloglevel"] = "3"
+try:
+    import structlog
+
+    structlog.configure(
+        wrapper_class=structlog.make_filtering_bound_logger(logging.CRITICAL),
+        cache_logger_on_first_use=True,
+    )
+except Exception:
+    pass
+# ----------------------------------------------------------------------------
 
 REPO = Path(__file__).resolve().parents[1]
 DETECTION = REPO / "services" / "detection"
@@ -228,36 +257,18 @@ def run() -> int:
     ok(f"INSERT params: 7 values, severity={insert_params[3]} (CHECK-compatible)")
 
     # ------------------------------------------------------------------
-    step(8, "Generator factory: no LLM keys -> mock fallback")
+    step(8, "Report-generator factory (offline mock for the dry-run)")
     # ------------------------------------------------------------------
     # Cross the service boundary: reload `app.*` against the reporting tree.
     _swap_to_service(REPORTING)
 
-    # Wipe keys from the in-process env so the factory can't pick a paid
-    # provider even if .env has one set.
-    import os
-
-    os.environ.pop("GEMINI_API_KEY", None)
-    os.environ.pop("ANTHROPIC_API_KEY", None)
-    os.environ["REPORT_GENERATOR_MODE"] = "gemini"  # request gemini, will fall back
-
-    # Mirror the factory logic from report_consumer._build_generator without
-    # constructing a KafkaConsumer / DB connection.
+    # REPORT_GENERATOR_MODE=mock is set at module load (quiet-mode block) so
+    # this stage is deterministic and offline. The live Gemini path is
+    # verified separately by scripts/diagnose_reporting.py.
     from app.generators.mock_generator import MockGenerator  # type: ignore
-    try:
-        from app.generators.gemini_generator import GeminiGenerator  # type: ignore
-        try:
-            generator = GeminiGenerator()
-            generator_name = "gemini"
-        except Exception as exc:
-            info(f"Gemini init failed (expected with no key): {exc}")
-            generator = MockGenerator()
-            generator_name = "mock"
-    except ImportError as exc:
-        info(f"google-generativeai not installed in this env ({exc}); using mock")
-        generator = MockGenerator()
-        generator_name = "mock"
-    ok(f"selected generator: {generator_name}")
+
+    generator = MockGenerator()
+    ok("generator: mock (deterministic, offline - live Gemini tested separately)")
 
     # ------------------------------------------------------------------
     step(9, "Build ReportContext and generate a report")

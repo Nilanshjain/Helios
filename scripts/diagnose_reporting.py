@@ -11,9 +11,28 @@ Gemini + Pydantic + storage path.
 """
 
 import json
+import logging
+import os
 import sys
 import traceback
+import warnings
 from datetime import datetime, timezone
+
+# --- Quiet mode: silence structlog INFO, library warnings, and the Gemini
+# SDK's gRPC/absl notices so the output is just the five check results. ---
+warnings.filterwarnings("ignore")
+logging.disable(logging.CRITICAL)
+os.environ["GRPC_VERBOSITY"] = "NONE"
+os.environ["GLOG_minloglevel"] = "3"
+try:
+    import structlog
+
+    structlog.configure(
+        wrapper_class=structlog.make_filtering_bound_logger(logging.CRITICAL),
+        cache_logger_on_first_use=True,
+    )
+except Exception:
+    pass
 
 
 def step(n: int, name: str) -> None:

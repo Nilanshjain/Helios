@@ -1,27 +1,53 @@
 {
-  "title": "Helios — Model Health",
+  "title": "Helios \u2014 Model Health",
   "uid": "helios-model-health",
-  "tags": ["helios", "mlops"],
-  "schemaVersion": 38,
+  "tags": [
+    "helios",
+    "mlops"
+  ],
+  "schemaVersion": 39,
   "version": 1,
   "refresh": "30s",
-  "time": {"from": "now-6h", "to": "now"},
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
   "panels": [
     {
       "id": 1,
       "type": "row",
       "title": "Model lifecycle",
-      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 0}
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      }
     },
     {
       "id": 2,
       "type": "stat",
       "title": "Days since last training",
       "description": "helios_model_prediction_age_days. Warning at 30 days, critical at 60.",
-      "datasource": "Prometheus",
-      "gridPos": {"h": 5, "w": 6, "x": 0, "y": 1},
+      "datasource": {
+        "type": "prometheus",
+        "uid": "helios-prometheus"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 0,
+        "y": 1
+      },
       "targets": [
-        {"expr": "helios_model_prediction_age_days", "refId": "A"}
+        {
+          "expr": "helios_model_prediction_age_days",
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "helios-prometheus"
+          }
+        }
       ],
       "fieldConfig": {
         "defaults": {
@@ -29,52 +55,132 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              {"color": "green", "value": null},
-              {"color": "yellow", "value": 30},
-              {"color": "red", "value": 60}
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 30
+              },
+              {
+                "color": "red",
+                "value": 60
+              }
             ]
           }
         }
       },
-      "options": {"reduceOptions": {"calcs": ["last"]}, "colorMode": "background"}
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "last"
+          ]
+        },
+        "colorMode": "background"
+      }
     },
     {
       "id": 3,
       "type": "stat",
       "title": "Predictions/minute",
       "description": "Window evaluations per minute (anomalous or not).",
-      "datasource": "Prometheus",
-      "gridPos": {"h": 5, "w": 6, "x": 6, "y": 1},
+      "datasource": {
+        "type": "prometheus",
+        "uid": "helios-prometheus"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 6,
+        "y": 1
+      },
       "targets": [
-        {"expr": "sum(rate(helios_model_prediction_score_count[5m])) * 60", "refId": "A"}
+        {
+          "expr": "sum(rate(helios_model_prediction_score_count[5m])) * 60",
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "helios-prometheus"
+          }
+        }
       ],
-      "fieldConfig": {"defaults": {"unit": "short", "decimals": 1}},
-      "options": {"reduceOptions": {"calcs": ["last"]}}
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 1
+        }
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "last"
+          ]
+        }
+      }
     },
     {
       "id": 4,
       "type": "stat",
       "title": "Anomaly rate (1h)",
       "description": "Anomalies/minute over the last hour, all services.",
-      "datasource": "Prometheus",
-      "gridPos": {"h": 5, "w": 6, "x": 12, "y": 1},
+      "datasource": {
+        "type": "prometheus",
+        "uid": "helios-prometheus"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 12,
+        "y": 1
+      },
       "targets": [
-        {"expr": "sum(rate(helios_anomalies_detected_total[1h])) * 60", "refId": "A"}
+        {
+          "expr": "sum(rate(helios_anomalies_detected_total[1h])) * 60",
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "helios-prometheus"
+          }
+        }
       ],
-      "fieldConfig": {"defaults": {"unit": "short", "decimals": 2}},
-      "options": {"reduceOptions": {"calcs": ["last"]}}
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 2
+        }
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "last"
+          ]
+        }
+      }
     },
     {
       "id": 5,
       "type": "stat",
       "title": "SHAP success ratio",
-      "description": "rate(helios_shap_inference_seconds_count) / rate(helios_anomalies_detected_total) — should be ~1 when SHAP is healthy.",
-      "datasource": "Prometheus",
-      "gridPos": {"h": 5, "w": 6, "x": 18, "y": 1},
+      "description": "rate(helios_shap_inference_seconds_count) / rate(helios_anomalies_detected_total) \u2014 should be ~1 when SHAP is healthy.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "helios-prometheus"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 18,
+        "y": 1
+      },
       "targets": [
         {
           "expr": "sum(rate(helios_shap_inference_seconds_count[5m])) / clamp_min(sum(rate(helios_anomalies_detected_total[5m])), 1e-9)",
-          "refId": "A"
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "helios-prometheus"
+          }
         }
       ],
       "fieldConfig": {
@@ -84,34 +190,67 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              {"color": "red", "value": null},
-              {"color": "yellow", "value": 0.8},
-              {"color": "green", "value": 0.95}
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 0.8
+              },
+              {
+                "color": "green",
+                "value": 0.95
+              }
             ]
           }
         }
       },
-      "options": {"reduceOptions": {"calcs": ["last"]}, "colorMode": "background"}
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "last"
+          ]
+        },
+        "colorMode": "background"
+      }
     },
     {
       "id": 6,
       "type": "row",
       "title": "Prediction distribution",
-      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 6}
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 6
+      }
     },
     {
       "id": 7,
       "type": "heatmap",
       "title": "IsolationForest score distribution over time",
       "description": "Heatmap of helios_model_prediction_score. A widening band or a sustained shift in the median is the earliest visible drift signal.",
-      "datasource": "Prometheus",
-      "gridPos": {"h": 9, "w": 16, "x": 0, "y": 7},
+      "datasource": {
+        "type": "prometheus",
+        "uid": "helios-prometheus"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 16,
+        "x": 0,
+        "y": 7
+      },
       "targets": [
         {
           "expr": "sum(rate(helios_model_prediction_score_bucket[5m])) by (le)",
           "format": "heatmap",
           "legendFormat": "{{le}}",
-          "refId": "A"
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "helios-prometheus"
+          }
         }
       ]
     },
@@ -120,18 +259,34 @@
       "type": "timeseries",
       "title": "Median score (1h)",
       "description": "Tracks drift in the score distribution against itself.",
-      "datasource": "Prometheus",
-      "gridPos": {"h": 9, "w": 8, "x": 16, "y": 7},
+      "datasource": {
+        "type": "prometheus",
+        "uid": "helios-prometheus"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 8,
+        "x": 16,
+        "y": 7
+      },
       "targets": [
         {
           "expr": "histogram_quantile(0.5, sum(rate(helios_model_prediction_score_bucket[1h])) by (le))",
           "legendFormat": "p50 (1h window)",
-          "refId": "A"
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "helios-prometheus"
+          }
         },
         {
           "expr": "histogram_quantile(0.5, sum(rate(helios_model_prediction_score_bucket[24h])) by (le))",
           "legendFormat": "p50 (24h baseline)",
-          "refId": "B"
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "helios-prometheus"
+          }
         }
       ]
     },
@@ -139,17 +294,38 @@
       "id": 9,
       "type": "row",
       "title": "Feature drift",
-      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 16}
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 16
+      }
     },
     {
       "id": 10,
       "type": "bargauge",
       "title": "Per-feature PSI (latest run)",
-      "description": "helios_feature_psi pushed by scripts/drift_check.py. Green < 0.10, orange < 0.25, red ≥ 0.25 (retrain candidate).",
-      "datasource": "Prometheus",
-      "gridPos": {"h": 9, "w": 12, "x": 0, "y": 17},
+      "description": "helios_feature_psi pushed by scripts/drift_check.py. Green < 0.10, orange < 0.25, red \u2265 0.25 (retrain candidate).",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "helios-prometheus"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 17
+      },
       "targets": [
-        {"expr": "max by (feature) (helios_feature_psi)", "legendFormat": "{{feature}}", "refId": "A"}
+        {
+          "expr": "max by (feature) (helios_feature_psi)",
+          "legendFormat": "{{feature}}",
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "helios-prometheus"
+          }
+        }
       ],
       "fieldConfig": {
         "defaults": {
@@ -158,27 +334,51 @@
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              {"color": "green", "value": null},
-              {"color": "orange", "value": 0.10},
-              {"color": "red", "value": 0.25}
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.1
+              },
+              {
+                "color": "red",
+                "value": 0.25
+              }
             ]
           }
         }
       },
-      "options": {"orientation": "horizontal", "displayMode": "gradient"}
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "gradient"
+      }
     },
     {
       "id": 11,
       "type": "timeseries",
       "title": "Live feature quantiles (P50 / P95)",
       "description": "Summary metric helios_model_feature_value, faceted by feature. Sudden divergence suggests upstream change.",
-      "datasource": "Prometheus",
-      "gridPos": {"h": 9, "w": 12, "x": 12, "y": 17},
+      "datasource": {
+        "type": "prometheus",
+        "uid": "helios-prometheus"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 17
+      },
       "targets": [
         {
           "expr": "helios_model_feature_value{quantile=\"0.5\"}",
           "legendFormat": "{{feature}} p50",
-          "refId": "A"
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "helios-prometheus"
+          }
         }
       ]
     },
@@ -186,20 +386,37 @@
       "id": 12,
       "type": "row",
       "title": "Explanations",
-      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 26}
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 26
+      }
     },
     {
       "id": 13,
       "type": "barchart",
       "title": "Top SHAP features across recent anomalies",
       "description": "How often each feature appears as the #1 SHAP contributor in the last 24h. Concentration on one or two features is normal; sudden change indicates a regime shift.",
-      "datasource": "TimescaleDB-Direct",
-      "gridPos": {"h": 9, "w": 12, "x": 0, "y": 27},
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "helios-timescaledb"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 27
+      },
       "targets": [
         {
           "rawSql": "SELECT\n  (features->'top_features'->0->>'name') AS feature,\n  COUNT(*) AS count\nFROM anomalies\nWHERE time > NOW() - INTERVAL '24 hours'\n  AND features ? 'top_features'\nGROUP BY feature\nORDER BY count DESC",
           "format": "table",
-          "refId": "A"
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "helios-timescaledb"
+          }
         }
       ]
     },
@@ -207,13 +424,25 @@
       "id": 14,
       "type": "table",
       "title": "Recent anomalies with SHAP context",
-      "datasource": "TimescaleDB-Direct",
-      "gridPos": {"h": 9, "w": 12, "x": 12, "y": 27},
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "helios-timescaledb"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 27
+      },
       "targets": [
         {
           "rawSql": "SELECT\n  time AS \"Time\",\n  service AS \"Service\",\n  severity AS \"Severity\",\n  ROUND(score::numeric, 3) AS \"Score\",\n  (features->'top_features'->0->>'name') AS \"Top feature\",\n  ROUND(((features->'top_features'->0->>'shap')::numeric), 3) AS \"SHAP\"\nFROM anomalies\nWHERE time > NOW() - INTERVAL '24 hours'\n  AND features ? 'top_features'\nORDER BY time DESC\nLIMIT 15",
           "format": "table",
-          "refId": "A"
+          "refId": "A",
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "helios-timescaledb"
+          }
         }
       ]
     }
