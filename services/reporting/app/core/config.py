@@ -18,9 +18,11 @@ class Settings(BaseSettings):
     # selected provider cause the consumer to fall back to mock at startup.
     report_generator_mode: str = "gemini"
 
-    # Gemini (default — free tier on aistudio.google.com)
+    # Gemini (default — free tier on aistudio.google.com).
+    # Note: gemini-1.5-flash was retired by Google in May 2026 — only the
+    # v1beta endpoint serves the gemini-2.x family now.
     gemini_api_key: str = ""
-    gemini_model: str = "gemini-1.5-flash"
+    gemini_model: str = "gemini-2.0-flash"
     gemini_max_tokens: int = 1500
     gemini_temperature: float = 0.3
     gemini_max_retries: int = 3

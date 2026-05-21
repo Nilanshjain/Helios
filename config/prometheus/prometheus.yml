@@ -52,6 +52,18 @@ scrape_configs:
           component: 'ml'
           phase: '2'
 
+  # Helios Detection Consumer — where the real ML metrics live
+  # (helios_model_prediction_score, helios_model_feature_value,
+  # helios_shap_inference_seconds).
+  - job_name: 'helios-detection-consumer'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['detection-consumer:8001']
+        labels:
+          service: 'detection-consumer'
+          component: 'ml'
+          phase: '4'
+
   # Helios Reporting Service (GenAI)
   - job_name: 'helios-reporting'
     metrics_path: '/metrics'

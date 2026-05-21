@@ -1,35 +1,26 @@
-"""Configuration management using Pydantic Settings"""
+"""Configuration management using Pydantic Settings.
 
-import json
+Threshold sourcing — note for readers:
+The production anomaly threshold is **not** sourced from this file. It is
+saved inside the trained-model pickle (``models/isolation_forest.pkl``) by
+``scripts/train_model.py``, which derives it via an F1 sweep on the
+training data (same methodology as ``scripts/evaluate.py``). ``AnomalyDetector.load()``
+restores that pkl-stored threshold at startup.
+
+The ``models/evaluation/results.json`` file written by ``scripts/evaluate.py``
+holds thresholds for the **NAB/SMD evaluation models** — those models are
+trained on different data, so applying their thresholds to the production
+(synthetic-trained) model would be wrong. The eval thresholds are for
+reporting F1 numbers; the production threshold belongs to the pkl.
+
+If you need to override at runtime (e.g., A/B testing), set the
+``ANOMALY_THRESHOLD`` env var and update ``AnomalyDetector.load()`` to
+respect it explicitly.
+"""
+
 import os
-from pathlib import Path
-from typing import List, Optional
+from typing import List
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
-
-def _threshold_from_evaluation(results_path: str | os.PathLike) -> Optional[float]:
-    """Read the per-dataset chosen threshold from models/evaluation/results.json.
-
-    The evaluation harness (scripts/evaluate.py) writes one chosen_threshold per
-    evaluated dataset (NAB, SMD). For production we use the NAB threshold when
-    available — NAB streams more closely resemble Helios's single-service
-    operational telemetry — and fall back to whichever dataset is present.
-
-    Returns None if the file is missing or malformed, in which case the default
-    ANOMALY_THRESHOLD env value (or class default) is used.
-    """
-    try:
-        path = Path(results_path)
-        if not path.exists():
-            return None
-        data = json.loads(path.read_text(encoding="utf-8"))
-        per_dataset = {d["dataset"]: d for d in data.get("datasets", [])}
-        for preferred in ("nab", "smd"):
-            if preferred in per_dataset:
-                return float(per_dataset[preferred]["chosen_threshold"])
-        return None
-    except Exception:
-        return None
 
 
 class Settings(BaseSettings):
@@ -57,13 +48,11 @@ class Settings(BaseSettings):
 
     # Model Configuration
     model_path: str = "./models/isolation_forest.pkl"
-    eval_results_path: str = "./models/evaluation/results.json"
     contamination: float = 0.05
-    # Default threshold: overridden at startup by the value chosen during
-    # evaluation (see scripts/evaluate.py + _threshold_from_evaluation above).
-    # If no eval results exist, ANOMALY_THRESHOLD env var (or this default)
-    # is used.
-    anomaly_threshold: float = -0.7
+    # Class default — overridden by the pkl's stored threshold via
+    # AnomalyDetector.load(). ANOMALY_THRESHOLD env var can override at
+    # runtime if you need an explicit operating-point change.
+    anomaly_threshold: float = -0.5
     window_size_minutes: int = 5
     min_events_per_window: int = 10
 
@@ -89,13 +78,6 @@ class Settings(BaseSettings):
         )
 
 
-# Global settings instance
+# Global settings instance. Threshold is *not* overridden from results.json
+# here — see module docstring for why; the pkl is the source of truth.
 settings = Settings()
-
-# If a Phase-2 evaluation has been run, derive the production threshold from
-# the held-out validation sweep instead of using the hard-coded default. This
-# lets `python scripts/evaluate.py` drive the operating point in production
-# without manual env-var management.
-_eval_threshold = _threshold_from_evaluation(settings.eval_results_path)
-if _eval_threshold is not None and "ANOMALY_THRESHOLD" not in os.environ:
-    settings.anomaly_threshold = _eval_threshold

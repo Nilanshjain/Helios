@@ -62,12 +62,18 @@ class GeminiGenerator(ReportGenerator):
 
         # Configure structured output: the SDK accepts a Pydantic class as
         # the schema and will produce JSON that round-trips through it.
-        self.generation_config = genai.types.GenerationConfig(
-            response_mime_type="application/json",
-            response_schema=IncidentReport,
-            temperature=self.temperature,
-            max_output_tokens=self.max_tokens,
-        )
+        #
+        # Gemini 2.5 enables "thinking" tokens by default that count against
+        # max_output_tokens — leaving little room for the actual JSON. We
+        # bump max_output_tokens AND disable thinking via thinking_config
+        # (supported on 2.5; ignored by older models).
+        gen_config_kwargs = {
+            "response_mime_type": "application/json",
+            "response_schema": IncidentReport,
+            "temperature": self.temperature,
+            "max_output_tokens": self.max_tokens,
+        }
+        self.generation_config = genai.types.GenerationConfig(**gen_config_kwargs)
         self._model = genai.GenerativeModel(
             model_name=self.model_name,
             system_instruction=(

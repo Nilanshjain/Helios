@@ -27,6 +27,10 @@ models/evaluation/*.pkl
 # not artifacts. Methodology lives in docs/MLOPS.md.
 models/drift/
 
+# Personal interview-prep notes — kept local, never pushed.
+docs/INTERVIEW_NOTES.md
+docs/RESUME.md
+
 # Go specific
 *.exe
 *.exe~

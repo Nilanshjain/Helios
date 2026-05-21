@@ -424,6 +424,53 @@ def main():
     # Evaluate
     metrics = evaluate_model(y, y_pred)
 
+    # ----------------------------------------------------------------------
+    # Threshold derivation — sweep decision_function and pick the F1-best
+    # operating point. This is the SAME methodology scripts/evaluate.py
+    # uses on NAB/SMD; keeping it identical means the pkl-stored threshold
+    # is calibrated to the model's actual score distribution, not a magic
+    # number. Previously the pkl was stamped with threshold=-0.5
+    # regardless of training outcome, which made the live consumer
+    # ~10× stricter than the model's own validation predict() implied.
+    # ----------------------------------------------------------------------
+    print("\nSweeping thresholds on training scores...")
+    X_scaled_for_threshold = trainer.scaler.transform(X)
+    scores_for_threshold = trainer.model.decision_function(X_scaled_for_threshold)
+    threshold_sweep = []
+    best_threshold = 0.0
+    best_f1 = -1.0
+    for t in np.arange(-0.6, 0.31, 0.02):
+        y_pred_at_t = (scores_for_threshold < t).astype(int)
+        tn_t, fp_t, fn_t, tp_t = confusion_matrix(
+            y, y_pred_at_t, labels=[0, 1]
+        ).ravel()
+        precision_t = tp_t / (tp_t + fp_t) if (tp_t + fp_t) else 0.0
+        recall_t = tp_t / (tp_t + fn_t) if (tp_t + fn_t) else 0.0
+        f1_t = (
+            2 * precision_t * recall_t / (precision_t + recall_t)
+            if (precision_t + recall_t)
+            else 0.0
+        )
+        threshold_sweep.append(
+            {
+                "threshold": float(t),
+                "precision": float(precision_t),
+                "recall": float(recall_t),
+                "f1": float(f1_t),
+            }
+        )
+        if f1_t > best_f1:
+            best_f1 = f1_t
+            best_threshold = float(t)
+    print(
+        f"  Best F1={best_f1:.4f} at threshold={best_threshold:+.3f}  "
+        f"(score distribution: min={scores_for_threshold.min():+.3f}, "
+        f"median={np.median(scores_for_threshold):+.3f}, "
+        f"max={scores_for_threshold.max():+.3f})"
+    )
+    metrics["chosen_threshold"] = best_threshold
+    metrics["threshold_sweep_best_f1"] = best_f1
+
     # Save model in format expected by AnomalyDetector
     # Include a small SHAP background sample (scaled training rows) so the
     # detection consumer can build a TreeExplainer at startup.
@@ -437,7 +484,7 @@ def main():
     model_data = {
         "model": trainer.model,
         "scaler": trainer.scaler,
-        "threshold": -0.5,  # Default threshold for Isolation Forest
+        "threshold": best_threshold,  # F1-best from the sweep above
         "feature_names": list(X.columns),
         "shap_background": shap_background,
     }

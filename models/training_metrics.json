@@ -10,5 +10,7 @@
     "fn": 34,
     "tp": 83
   },
-  "targets_met": false
+  "targets_met": false,
+  "chosen_threshold": -0.03999999999999948,
+  "threshold_sweep_best_f1": 0.7643979057591623
 }

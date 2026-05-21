@@ -9,6 +9,7 @@ from typing import Dict, List, Any, Optional
 import numpy as np
 from kafka import KafkaConsumer, KafkaProducer
 from kafka.errors import KafkaError
+from prometheus_client import start_http_server
 
 from app.core.logging import get_logger
 from app.core.config import settings
@@ -103,6 +104,17 @@ class DetectionConsumer:
     def start(self) -> None:
         """Start consuming and detecting anomalies"""
         logger.info("starting_detection_consumer")
+
+        # Expose Prometheus metrics on the consumer's metrics port so the
+        # model-health dashboard's prediction-score and feature-quantile
+        # panels populate. Without this, those metrics are emitted to the
+        # default registry but never scraped.
+        try:
+            start_http_server(settings.metrics_port)
+            logger.info("metrics_http_server_started", port=settings.metrics_port)
+        except OSError as exc:
+            # Port already taken (e.g., running locally outside docker) — skip.
+            logger.warning("metrics_http_server_failed", error=str(exc))
 
         # Load model
         self.load_model()
@@ -269,8 +281,9 @@ class DetectionConsumer:
             "features": features_dict,
             "top_features": top_features,
             "window_size": len(events),
-            "window_start": events[0]["time"] if events else None,
-            "window_end": events[-1]["time"] if events else None,
+            # Kafka events carry `timestamp`; the DB column is `time`. Accept either.
+            "window_start": (events[0].get("timestamp") or events[0].get("time")) if events else None,
+            "window_end": (events[-1].get("timestamp") or events[-1].get("time")) if events else None,
         }
 
         # Store in database

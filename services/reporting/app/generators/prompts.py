@@ -38,6 +38,11 @@ def build_structured_prompt(context: ReportContext) -> str:
         )
     shap_block = "\n".join(feature_block_lines)
 
+    # Important: do NOT include a JSON template here. Gemini's
+    # ``response_schema`` parameter already constrains the model to produce
+    # an IncidentReport-shaped JSON. Inlining a template with placeholder
+    # values caused the model to echo just the placeholders and stop after
+    # ~30 output tokens. See INTERVIEW_NOTES.md for the debugging story.
     return f"""You are a senior SRE writing an incident report from ML-detected anomaly evidence.
 
 ## Anomaly evidence
@@ -61,32 +66,32 @@ def build_structured_prompt(context: ReportContext) -> str:
 ## Sample events ({min(len(events), 10)} of {len(events)})
 {_format_events(events[:10])}
 
-## Required output
-Respond with **JSON only** (no markdown fences, no commentary) matching this schema:
+## Task
+Write a complete incident report. Populate every field of the IncidentReport
+schema (the response format is constrained for you — return ALL fields, not
+just the obvious ones):
 
-{{
-  "incident_id": "{anomaly.get('id', 'unknown')}",
-  "service": "{anomaly.get('service', 'unknown')}",
-  "detected_at": "{anomaly.get('timestamp', 'unknown')}",
-  "severity": "LOW|MEDIUM|HIGH|CRITICAL",
-  "confidence": 0.0-1.0,
-  "executive_summary": "2-3 sentences for the oncall pager.",
-  "root_cause_hypothesis": "Specific hypothesis explicitly referencing the top SHAP feature names by name.",
-  "contributing_features": [
-    {{"name": "<feature>", "value": <number>, "shap": <number>, "direction": "toward_anomaly|toward_normal"}}
-  ],
-  "recommended_actions": [
-    {{"timeframe": "immediate|short_term|long_term", "action": "concrete step", "rationale": "evidence-grounded reason"}}
-  ],
-  "monitoring_checks": ["signal_or_metric_name_1", "..."]
-}}
+- ``incident_id``: reuse the incident ID above verbatim.
+- ``service``: reuse the service name above.
+- ``detected_at``: reuse the detection timestamp above.
+- ``severity``: must be one of LOW, MEDIUM, HIGH, CRITICAL (uppercase).
+- ``confidence``: a number between 0.0 and 1.0 reflecting your honest
+  confidence in the root-cause hypothesis.
+- ``executive_summary``: 2-3 sentences an oncall engineer can read on
+  their pager — what happened, which service, what's the impact.
+- ``root_cause_hypothesis``: a paragraph explaining the most likely
+  cause. **You MUST reference at least one feature name from the SHAP
+  block above by name** (e.g., "p99_latency_ms drove the score").
+- ``contributing_features``: copy the top SHAP features verbatim
+  (name, value, shap, direction).
+- ``recommended_actions``: at least three concrete actions, one with
+  timeframe=immediate, one with short_term, one with long_term. Each
+  needs an action description and an evidence-grounded rationale.
+- ``monitoring_checks``: 3-5 specific signals or dashboards to watch
+  after triage (named metrics, not "the dashboard").
 
-Constraints:
-- The root_cause_hypothesis MUST reference at least one feature name from the SHAP block above.
-- recommended_actions MUST include at least one item per timeframe.
-- Severity MUST be one of LOW, MEDIUM, HIGH, CRITICAL (uppercase).
-- Confidence is your honest estimate, not a fixed value.
-- Do not invent metrics that aren't in the evidence."""
+Ground every claim in the evidence above. Never invent metrics that
+aren't in the evidence."""
 
 
 def build_incident_report_prompt(context: ReportContext) -> str:

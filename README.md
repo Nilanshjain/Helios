@@ -11,9 +11,10 @@
 Helios processes operational events through Kafka, scores 1-minute service windows with an Isolation Forest (12-feature pipeline), explains each anomaly with live SHAP attributions, and generates structured incident reports via Gemini (or Claude). Feature drift, model freshness, and prediction-score shifts are monitored continuously and alerted on.
 
 - **Headline result:** F1 0.326 on NAB, F1 0.327 on SMD (ROC-AUC 0.81 on SMD) on held-out splits of two public labeled benchmarks — see table below.
-- **Live demo:** *coming after Phase 6 cloud deploy.*
+- **Live demo:** *follow [`docs/DEPLOY.md`](docs/DEPLOY.md) to bring up the public URL on Oracle Cloud Always Free ($0/month forever).*
+- **Project writeup:** [`docs/PROJECT_WRITEUP.md`](docs/PROJECT_WRITEUP.md) — 15-minute long-form covering every interesting decision.
 - **Sample incident report:** [`docs/sample-incident-report.md`](docs/sample-incident-report.md) — real rendering from the production code path.
-- **MLOps deep-dive:** [`docs/MLOPS.md`](docs/MLOPS.md).
+- **MLOps operations:** [`docs/MLOPS.md`](docs/MLOPS.md) — drift methodology, retraining playbook, metric reference.
 
 ---
 

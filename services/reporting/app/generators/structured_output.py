@@ -61,9 +61,12 @@ class IncidentReport(BaseModel):
     severity: Severity
     confidence: float = Field(
         ...,
-        ge=0.0,
-        le=1.0,
-        description="LLM-assessed confidence in the root-cause hypothesis (0-1)",
+        description=(
+            "LLM-assessed confidence in the root-cause hypothesis (0-1). "
+            "ge/le constraints removed because Gemini's response_schema "
+            "rejects JSON-schema minimum/maximum fields; the prompt enforces "
+            "the range instead."
+        ),
     )
 
     executive_summary: str = Field(

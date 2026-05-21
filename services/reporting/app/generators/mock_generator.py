@@ -38,15 +38,14 @@ class MockGenerator(ReportGenerator):
         avg_latency = metrics.get('avg_latency') or 0.0
         p99_latency = metrics.get('avg_p99_latency') or 0.0
 
-        # Determine severity based on anomaly score
-        if anomaly_score < -0.8:
-            severity = "Critical"
-        elif anomaly_score < -0.7:
-            severity = "High"
-        elif anomaly_score < -0.5:
-            severity = "Medium"
-        else:
-            severity = "Low"
+        # Trust the detector's severity — it accounts for both anomaly_score
+        # AND error_rate (see AnomalyDetector._calculate_severity), which a
+        # score-only recomputation here would miss. Default LOW so an alert
+        # missing this field still renders. Normalize case to UPPER to
+        # match the DB CHECK constraint and the structured-output schema.
+        severity = str(anomaly.get('severity') or 'LOW').upper()
+        if severity not in ('LOW', 'MEDIUM', 'HIGH', 'CRITICAL'):
+            severity = 'LOW'
 
         # Count error events
         error_count = sum(1 for e in events if e.get('level') in ['ERROR', 'CRITICAL'])

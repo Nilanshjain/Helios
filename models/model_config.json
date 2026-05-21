@@ -1,6 +1,6 @@
 {
   "model_type": "IsolationForest",
-  "training_date": "2026-05-19T15:45:12.863379",
+  "training_date": "2026-05-20T15:59:22.379113",
   "training_samples": 2016,
   "features": [
     "event_count",
@@ -35,6 +35,8 @@
       "fn": 34,
       "tp": 83
     },
-    "targets_met": false
+    "targets_met": false,
+    "chosen_threshold": -0.03999999999999948,
+    "threshold_sweep_best_f1": 0.7643979057591623
   }
 }
