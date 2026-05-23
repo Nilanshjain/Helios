@@ -115,8 +115,9 @@ benchmarks' normalized signals.
 ```
 
 1. **Ingestion (Go).** An HTTP service validates incoming events and produces
-   them to the Kafka `events` topic. Single-event ingestion runs at roughly
-   18 ms median / 35 ms P99 latency under local load (`scripts/load_test.py`).
+   them to the Kafka `events` topic. Per-request latency is exported as a
+   Prometheus histogram and plotted p50/p95/p99 on the master dashboard;
+   `scripts/load_test.py` drives synthetic load against the endpoint.
 
 2. **Storage (Go).** A separate consumer batch-writes every event into
    TimescaleDB hypertables, time-partitioned for fast range queries.

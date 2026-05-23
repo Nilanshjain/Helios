@@ -750,7 +750,7 @@
       "title": "System Overview",
       "options": {
         "mode": "markdown",
-        "content": "##  Helios Observability Platform\n\n**Event-Driven ML Anomaly Detection with AI-Powered PDF Reports**\n\n### Key Features:\n- **Real-time Ingestion**: Sub-30ms P99 latency\n- **ML Detection**: Isolation Forest anomaly detection\n- **AI Reports**: Claude 3.5 Sonnet generates professional PDF incident reports\n- **Storage**: TimescaleDB time-series database + Kafka streaming\n\n### Current Stats:\n- 14 microservices | 3K+ events/hour | 10 reports generated | $0.02-0.05 per report"
+        "content": "## Helios — Event-Driven ML Anomaly Detection\n\n**Streaming anomaly detection with SHAP explanations and LLM incident reports**\n\n### Pipeline\n- **Ingestion**: Go HTTP service to Kafka\n- **Detection**: Isolation Forest over a 12-feature traffic window + SHAP attribution\n- **Reporting**: Google Gemini generates schema-validated incident reports\n- **Storage**: TimescaleDB hypertables\n\n### Stack\n13 containers, Go + Python, Kafka, Prometheus + Grafana"
       }
     },
     {

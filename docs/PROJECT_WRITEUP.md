@@ -289,8 +289,8 @@ top-feature frequency, and the recent-anomalies SHAP context table.
 
 I'd rather these be in writing than discovered in an interview:
 
-- **Single-instance.** The system has been load-tested at ~800
-  events/sec on a laptop. Horizontal scaling would require Kafka
+- **Single-instance.** The system runs as a single instance on a
+  laptop and has not been benchmarked at scale. Horizontal scaling would require Kafka
   partition tuning, sticky-consumer assignment, and a careful look at
   the per-service window state in `DetectionConsumer` (currently
   in-memory deques — wouldn't survive a restart).
@@ -311,7 +311,7 @@ I'd rather these be in writing than discovered in an interview:
 
 | Layer | Choice | Why |
 |---|---|---|
-| Ingestion | Go 1.21 + Chi router | Goroutine concurrency; sub-30ms P99 for HTTP batch ingest |
+| Ingestion | Go 1.21 + Chi router | Goroutine concurrency; non-blocking Kafka producer; per-request latency exported to Prometheus |
 | Message broker | Kafka 3.6 + Zookeeper | 10 partitions, snappy compression, two consumer groups |
 | Storage | TimescaleDB (PostgreSQL 15) | Hypertables, continuous aggregates, JSONB for SHAP |
 | ML runtime | Python 3.11 + scikit-learn 1.3.2 | CPU-only inference; SHAP TreeExplainer integrates cleanly |
