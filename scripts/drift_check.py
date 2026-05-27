@@ -41,12 +41,27 @@ import pandas as pd
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
-# Import the canonical feature schema from production rather than duplicating
-# it here — keeps drift_check automatically in sync with whatever the live
-# model uses (currently 27 features in v2).
-sys.path.insert(0, str(REPO_ROOT / "services" / "detection"))
-from app.ml.feature_engineering import FeatureExtractor  # noqa: E402
-FEATURE_NAMES = list(FeatureExtractor.FEATURE_NAMES)
+# Canonical feature schema. Kept in sync with
+# ``services/detection/app/ml/feature_engineering.py:FEATURE_NAMES``.
+# Inlined here (rather than imported) so drift_check.py runs from a
+# lightweight environment without the detection service's runtime deps
+# (structlog, fastapi, etc.) — useful for CI and standalone drift jobs.
+KNOWN_SERVICES = (
+    "api-gateway", "auth-service", "user-service", "payment-service",
+    "inventory-service", "notification-service", "recommendation-engine",
+    "search-service",
+)
+FEATURE_NAMES = [
+    "event_count", "error_rate",
+    "p50_latency_ms", "p95_latency_ms", "p99_latency_ms",
+    "latency_std",
+    "p95_p50_ratio", "p99_p95_ratio",
+    "error_count", "log_event_count", "log_error_rate",
+] + [
+    f"{svc}_{metric}"
+    for svc in KNOWN_SERVICES
+    for metric in ("error_rate", "p95_latency")
+]
 
 PSI_MINOR = 0.10
 PSI_MAJOR = 0.25
