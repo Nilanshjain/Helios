@@ -18,6 +18,11 @@ jobs:
           python-version: "3.11"
           cache: pip
 
+      - name: System deps (libsnappy for python-snappy source build)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsnappy-dev
+
       - name: Install dev + service deps
         run: |
           python -m pip install --upgrade pip
