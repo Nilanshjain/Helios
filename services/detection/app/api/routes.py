@@ -4,21 +4,18 @@ from typing import Optional
 from datetime import datetime
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException, BackgroundTasks
+from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
 
 from app.api.models import (
     PredictionRequest,
     PredictionResponse,
-    TrainingRequest,
-    TrainingResponse,
     ModelInfo,
     HealthResponse,
 )
 from app.core.logging import get_logger
 from app.core.config import settings
 from app.ml.anomaly_detector import AnomalyDetector
-from app.ml.training import train_model_from_database, train_model_synthetic
 from app import __version__
 
 logger = get_logger(__name__)
@@ -26,7 +23,6 @@ router = APIRouter()
 
 # Global model instance
 _detector: Optional[AnomalyDetector] = None
-_training_in_progress = False
 
 
 def get_detector() -> AnomalyDetector:
@@ -40,7 +36,11 @@ def get_detector() -> AnomalyDetector:
         except FileNotFoundError:
             raise HTTPException(
                 status_code=503,
-                detail="Model not trained yet. Please train the model first using POST /train",
+                detail=(
+                    "Model not trained yet. Run "
+                    "`python scripts/generate_chaos_traffic.py` then "
+                    "`python scripts/train_production.py` to produce one."
+                ),
             )
         except Exception as e:
             logger.error("model_loading_failed", error=str(e))
@@ -111,66 +111,6 @@ async def predict_anomaly(request: PredictionRequest) -> PredictionResponse:
     except Exception as e:
         logger.error("prediction_failed", error=str(e))
         raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")
-
-
-def _train_model_background(use_database: bool, days: int) -> None:
-    """Background task for model training"""
-    global _detector, _training_in_progress
-
-    try:
-        logger.info("background_training_started", use_database=use_database, days=days)
-
-        if use_database:
-            try:
-                train_model_from_database()
-            except Exception as e:
-                logger.warning("database_training_failed", error=str(e))
-                logger.info("falling_back_to_synthetic_data")
-                train_model_synthetic(days=days)
-        else:
-            train_model_synthetic(days=days)
-
-        # Reload the model
-        _detector = AnomalyDetector.load()
-
-        logger.info("background_training_completed")
-
-    except Exception as e:
-        logger.error("background_training_failed", error=str(e))
-    finally:
-        _training_in_progress = False
-
-
-@router.post("/train", response_model=TrainingResponse)
-async def train_model(
-    request: TrainingRequest, background_tasks: BackgroundTasks
-) -> JSONResponse:
-    """
-    Train or retrain the anomaly detection model.
-
-    This is a long-running operation that runs in the background.
-    """
-    global _training_in_progress
-
-    if _training_in_progress:
-        raise HTTPException(status_code=409, detail="Training already in progress")
-
-    _training_in_progress = True
-
-    # Start training in background
-    background_tasks.add_task(
-        _train_model_background, request.use_database, request.days
-    )
-
-    return JSONResponse(
-        status_code=202,
-        content={
-            "status": "training_started",
-            "message": "Model training started in background. Check /model/info for status.",
-            "use_database": request.use_database,
-            "days": request.days,
-        },
-    )
 
 
 @router.delete("/model")

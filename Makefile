@@ -148,10 +148,13 @@ seed-data:
 	@echo "$(GREEN)Seeding database with test data...$(NC)"
 	./scripts/seed_data.sh
 
-## train-model: Train the anomaly-detection model (synthetic data)
-train-model:
-	@echo "$(GREEN)Training ML model...$(NC)"
-	@python scripts/train_model.py --grid-search
+## train-production: Train the production Isolation Forest on Helios's own labeled telemetry
+train-production:
+	@echo "$(GREEN)Training production ML model on labeled chaos telemetry...$(NC)"
+	@echo "$(GREEN)Step 1/2: Generate 2 hours of chaos traffic...$(NC)"
+	@python scripts/generate_chaos_traffic.py --duration-hours 2 --base-rps 100
+	@echo "$(GREEN)Step 2/2: Train on the most recent timeline...$(NC)"
+	@python scripts/train_production.py --timeline $$(ls -t data/chaos/timeline_*.json | head -n 1)
 
 ## db-shell: Open PostgreSQL shell
 db-shell:

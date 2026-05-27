@@ -1,16 +1,36 @@
 {
-  "accuracy": 0.9742063492063492,
-  "precision": 0.8217821782178217,
-  "recall": 0.7094017094017094,
-  "f1_score": 0.761467889908257,
-  "false_positive_rate": 0.009478672985781991,
-  "confusion_matrix": {
-    "tn": 1881,
-    "fp": 18,
-    "fn": 34,
-    "tp": 83
-  },
-  "targets_met": false,
-  "chosen_threshold": -0.03999999999999948,
-  "threshold_sweep_best_f1": 0.7643979057591623
+  "training_source": "chaos_traffic_v1",
+  "chosen_threshold": 6.175615574477433e-16,
+  "val_sweep_best_f1": 0.9130434782608696,
+  "splits": {
+    "train": {
+      "n_windows": 59,
+      "n_positive": 0,
+      "anomaly_rate": 0.0
+    },
+    "val": {
+      "n_windows": 59,
+      "n_positive": 21,
+      "anomaly_rate": 0.3559322033898305,
+      "best_threshold": 6.175615574477433e-16,
+      "f1": 0.9130434782608696,
+      "precision": 0.84,
+      "recall": 1.0
+    },
+    "test": {
+      "n_windows": 61,
+      "n_positive": 19,
+      "anomaly_rate": 0.3114754098360656,
+      "f1": 0.9142857142857143,
+      "precision": 1.0,
+      "recall": 0.8421052631578947,
+      "fpr": 0.0,
+      "tp": 16,
+      "fp": 0,
+      "tn": 42,
+      "fn": 3,
+      "pr_auc": 0.980312623664424,
+      "roc_auc": 0.9874686716791979
+    }
+  }
 }

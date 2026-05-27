@@ -41,20 +41,12 @@ import pandas as pd
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
-FEATURE_NAMES = [
-    "event_count",
-    "error_rate",
-    "p50_latency_ms",
-    "p95_latency_ms",
-    "p99_latency_ms",
-    "latency_std",
-    "hour_of_day",
-    "p95_p50_ratio",
-    "p99_p95_ratio",
-    "error_count",
-    "log_event_count",
-    "log_error_rate",
-]
+# Import the canonical feature schema from production rather than duplicating
+# it here — keeps drift_check automatically in sync with whatever the live
+# model uses (currently 27 features in v2).
+sys.path.insert(0, str(REPO_ROOT / "services" / "detection"))
+from app.ml.feature_engineering import FeatureExtractor  # noqa: E402
+FEATURE_NAMES = list(FeatureExtractor.FEATURE_NAMES)
 
 PSI_MINOR = 0.10
 PSI_MAJOR = 0.25
@@ -154,10 +146,10 @@ def _load_csv_features(path: Path) -> pd.DataFrame:
 def load_reference(path: Optional[Path]) -> pd.DataFrame:
     """Reference (training) distribution.
 
-    Default: ``models/training_data.csv`` produced by scripts/train_model.py
-    when run with --save-data. If absent, we synthesise reference data using
-    the same generator the production model was trained on, so drift_check
-    still has a sensible baseline to demo against.
+    Default: ``models/training_data.csv`` produced by
+    ``scripts/train_production.py --save-features``. If the file is absent we
+    fail loudly rather than fabricating a baseline — PSI against a synthetic
+    reference would silently mislead.
     """
     if path is not None and path.exists():
         return _load_csv_features(path)
@@ -166,20 +158,12 @@ def load_reference(path: Optional[Path]) -> pd.DataFrame:
     if default.exists():
         return _load_csv_features(default)
 
-    print(
-        "[drift_check] no reference CSV found; generating synthetic reference "
-        "via scripts.train_model.SyntheticDataGenerator"
+    raise FileNotFoundError(
+        f"No reference distribution available. Expected --reference CSV or "
+        f"{default}. Run "
+        f"`python scripts/train_production.py --timeline ... --save-features` "
+        f"to regenerate it from the same data the production model was trained on."
     )
-    sys.path.insert(0, str(REPO_ROOT))
-    from scripts.train_model import SyntheticDataGenerator  # noqa: E402
-
-    df = SyntheticDataGenerator(days=7, interval_minutes=5, anomaly_rate=0.05).generate()
-    df["p95_p50_ratio"] = df["p95_latency_ms"] / (df["p50_latency_ms"] + 1)
-    df["p99_p95_ratio"] = df["p99_latency_ms"] / (df["p95_latency_ms"] + 1)
-    df["error_count"] = df["event_count"] * df["error_rate"]
-    df["log_event_count"] = np.log1p(df["event_count"])
-    df["log_error_rate"] = np.log1p(df["error_rate"] * 1000)
-    return df[FEATURE_NAMES]
 
 
 def load_current(

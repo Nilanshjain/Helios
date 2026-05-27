@@ -36,8 +36,15 @@ docs/RECORDING_PLAYBOOK.md
 docs/learning/
 docs/implementation/
 
+# Obsidian-based interview-prep vault — kept local, never pushed.
+docs/interview-prep/
+
 # Raw screenshot dump — curated copies live in docs/images/.
 screenshots/
+
+# Stray Obsidian state if someone opens the repo root in Obsidian. The vault
+# already lives under docs/interview-prep/ — this rule covers any other location.
+.obsidian/
 
 # Go specific
 *.exe

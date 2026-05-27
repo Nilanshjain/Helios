@@ -35,26 +35,6 @@ class PredictionResponse(BaseModel):
     n_events: int = Field(..., description="Number of events analyzed")
 
 
-class TrainingRequest(BaseModel):
-    """Request model for model training"""
-
-    days: int = Field(7, description="Days of historical data to use", ge=1, le=30)
-    use_database: bool = Field(True, description="Use database or synthetic data")
-
-
-class TrainingResponse(BaseModel):
-    """Response model for training completion"""
-
-    status: str = Field(..., description="Training status")
-    n_windows: int = Field(..., description="Number of training windows")
-    n_valid_windows: int = Field(..., description="Valid windows after filtering")
-    n_features: int = Field(..., description="Number of features")
-    anomalies_in_training: int = Field(..., description="Anomalies found in training data")
-    score_mean: float = Field(..., description="Mean anomaly score")
-    score_std: float = Field(..., description="Standard deviation of scores")
-    model_path: str = Field(..., description="Path where model was saved")
-
-
 class ModelInfo(BaseModel):
     """Model information response"""
 

@@ -104,7 +104,15 @@ prediction_score = get_or_create_histogram(
 
 # Quantile snapshot of every feature value the model sees in production.
 # Compared against the model's training distribution by scripts/drift_check.py
-# (PSI) to detect data drift. One series per feature keeps cardinality at 12.
+# (PSI) to detect data drift. One series per feature.
+#
+# KNOWN ISSUE: prometheus_client.Summary does NOT emit {quantile="..."} labels
+# unless quantile objectives are configured at creation, which the Python client
+# doesn't support directly. The Grafana "Live feature quantiles" panel queries
+# helios_model_feature_value{quantile="0.5"} and shows "No data" as a result.
+# Fix: switch to a Histogram with explicit buckets, then update the dashboard
+# query to histogram_quantile(0.5, ...). Until that change lands, only _sum and
+# _count are usable from this metric.
 feature_value = get_or_create_summary(
     "helios_model_feature_value",
     "Per-feature value distribution seen in production",

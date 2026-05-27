@@ -46,11 +46,12 @@ RUN mkdir -p /app/models && chown -R helios:helios /app
 # Expose ports
 EXPOSE 8000
 
-# Health check
+# Health check — hits the real FastAPI mount under /api/v1/
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-  CMD python -c "import requests; requests.get('http://localhost:8000/health')" || exit 1
+  CMD python -c "import urllib.request, sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/api/v1/health', timeout=2).status == 200 else 1)" || exit 1
 
 USER helios
 
-# Run the application
-CMD ["python", "main.py"]
+# Run the FastAPI app. Compose may override this for the detection-consumer
+# variant to run `python -m app.consumers.detection_consumer`.
+CMD ["python", "-m", "app.main"]

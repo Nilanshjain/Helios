@@ -1,7 +1,8 @@
 {
   "model_type": "IsolationForest",
-  "training_date": "2026-05-20T15:59:22.379113",
-  "training_samples": 2016,
+  "training_date": "2026-05-27T08:45:43.621959+00:00",
+  "training_source": "chaos_traffic_v1",
+  "training_samples": 59,
   "features": [
     "event_count",
     "error_rate",
@@ -9,34 +10,64 @@
     "p95_latency_ms",
     "p99_latency_ms",
     "latency_std",
-    "hour_of_day",
     "p95_p50_ratio",
     "p99_p95_ratio",
     "error_count",
     "log_event_count",
-    "log_error_rate"
+    "log_error_rate",
+    "api-gateway_error_rate",
+    "api-gateway_p95_latency",
+    "auth-service_error_rate",
+    "auth-service_p95_latency",
+    "user-service_error_rate",
+    "user-service_p95_latency",
+    "payment-service_error_rate",
+    "payment-service_p95_latency",
+    "inventory-service_error_rate",
+    "inventory-service_p95_latency",
+    "notification-service_error_rate",
+    "notification-service_p95_latency",
+    "recommendation-engine_error_rate",
+    "recommendation-engine_p95_latency",
+    "search-service_error_rate",
+    "search-service_p95_latency"
   ],
   "hyperparameters": {
     "n_estimators": 100,
-    "max_samples": 256,
     "contamination": 0.05,
-    "max_features": 1.0,
+    "max_samples": "auto",
     "random_state": 42
   },
+  "chosen_threshold": 6.175615574477433e-16,
   "metrics": {
-    "accuracy": 0.9742063492063492,
-    "precision": 0.8217821782178217,
-    "recall": 0.7094017094017094,
-    "f1_score": 0.761467889908257,
-    "false_positive_rate": 0.009478672985781991,
-    "confusion_matrix": {
-      "tn": 1881,
-      "fp": 18,
-      "fn": 34,
-      "tp": 83
+    "train": {
+      "n_windows": 59,
+      "n_positive": 0,
+      "anomaly_rate": 0.0
     },
-    "targets_met": false,
-    "chosen_threshold": -0.03999999999999948,
-    "threshold_sweep_best_f1": 0.7643979057591623
+    "val": {
+      "n_windows": 59,
+      "n_positive": 21,
+      "anomaly_rate": 0.3559322033898305,
+      "best_threshold": 6.175615574477433e-16,
+      "f1": 0.9130434782608696,
+      "precision": 0.84,
+      "recall": 1.0
+    },
+    "test": {
+      "n_windows": 61,
+      "n_positive": 19,
+      "anomaly_rate": 0.3114754098360656,
+      "f1": 0.9142857142857143,
+      "precision": 1.0,
+      "recall": 0.8421052631578947,
+      "fpr": 0.0,
+      "tp": 16,
+      "fp": 0,
+      "tn": 42,
+      "fn": 3,
+      "pr_auc": 0.980312623664424,
+      "roc_auc": 0.9874686716791979
+    }
   }
 }

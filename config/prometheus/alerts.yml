@@ -96,7 +96,7 @@ groups:
           category: mlops
         annotations:
           summary: "Model has not been retrained in {{ $value | printf \"%.0f\" }} days"
-          description: "The loaded IsolationForest was trained {{ $value | printf \"%.0f\" }} days ago. Consider re-running `python scripts/train_model.py` against fresh production data."
+          description: "The loaded IsolationForest was trained {{ $value | printf \"%.0f\" }} days ago. Consider re-running `make train-production` (or `python scripts/generate_chaos_traffic.py` + `python scripts/train_production.py`) against fresh telemetry."
 
       # Prediction-score distribution shift.
       # Compares last-1h median against last-24h median; >50% relative

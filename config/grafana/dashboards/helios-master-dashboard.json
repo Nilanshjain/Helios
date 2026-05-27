@@ -750,7 +750,7 @@
       "title": "System Overview",
       "options": {
         "mode": "markdown",
-        "content": "## Helios — Event-Driven ML Anomaly Detection\n\n**Streaming anomaly detection with SHAP explanations and LLM incident reports**\n\n### Pipeline\n- **Ingestion**: Go HTTP service to Kafka\n- **Detection**: Isolation Forest over a 12-feature traffic window + SHAP attribution\n- **Reporting**: Google Gemini generates schema-validated incident reports\n- **Storage**: TimescaleDB hypertables\n\n### Stack\n13 containers, Go + Python, Kafka, Prometheus + Grafana"
+        "content": "## Helios — Event-Driven ML Anomaly Detection\n\n**Streaming anomaly detection with SHAP explanations and LLM incident reports**\n\n### Pipeline\n- **Ingestion**: Go HTTP service to Kafka\n- **Detection**: Isolation Forest over a 27-feature traffic window (11 global + 16 per-service) + SHAP attribution\n- **Reporting**: Google Gemini generates schema-validated incident reports\n- **Storage**: TimescaleDB hypertables\n\n### Stack\n13 containers, Go + Python, Kafka, Prometheus + Grafana"
       }
     },
     {

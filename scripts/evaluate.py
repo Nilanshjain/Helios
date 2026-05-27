@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 """Evaluate Helios's Isolation Forest pipeline on public anomaly benchmarks.
 
-Runs the same 12-feature pipeline used in production (see
-``services/detection/app/ml/feature_engineering.py``) on the Numenta Anomaly
-Benchmark (NAB) and the Server Machine Dataset (SMD), reports metrics, and
+Runs the 12-feature benchmark adapter (``scripts/datasets/windows_to_features.py``)
+on the Numenta Anomaly Benchmark (NAB) and the Server Machine Dataset (SMD).
+This is decoupled from the production 27-feature schema in
+``services/detection/app/ml/feature_engineering.py``: NAB/SMD streams have no
+service identity, so per-service feature columns don't apply. Reports metrics
+and saves artifacts under ``models/evaluation/``:
 saves artifacts under ``models/evaluation/``:
 
     results.json         - all metrics, all hyperparameters
@@ -514,9 +517,10 @@ def write_model_card(results: List[DatasetResult], out_path: Path) -> None:
     md.append(
         "- Public benchmark performance is a proxy for production behaviour. NAB streams "
         "are mostly single-metric system telemetry; SMD is multivariate but its anomaly "
-        "labels are inherently noisy (human-labeled by SREs). Production Helios sees "
-        "12-feature windows over real Kafka event streams — performance there may "
-        "differ.\n"
+        "labels are inherently noisy (human-labeled by SREs). Production Helios uses a "
+        "richer 27-feature schema (11 global + 16 per-service) over real Kafka event "
+        "streams; performance there is reported separately in "
+        "``models/evaluation/production/REPORT.md``.\n"
         "- The `error_rate` adapter is a self-supervised proxy (values above 95th "
         "percentile of training). On true Helios traffic this feature is computed from "
         "`level=ERROR|CRITICAL` event ratios, which is a different signal.\n"
@@ -538,41 +542,6 @@ def write_model_card(results: List[DatasetResult], out_path: Path) -> None:
     )
 
     out_path.write_text("\n".join(md), encoding="utf-8")
-
-
-# ---------------------------------------------------------------------------
-# Tertiary eval: realistic_data_generator scenarios
-# ---------------------------------------------------------------------------
-
-
-def evaluate_scenarios(seed: int) -> Dict[str, float] | None:
-    """Per-scenario recall on the controlled failure-mode generator."""
-    try:
-        sys.path.insert(0, str(REPO_ROOT / "services" / "detection"))
-        from app.ml.realistic_data_generator import RealisticDataGenerator  # type: ignore
-    except Exception as exc:  # noqa: BLE001
-        print(f"[warn] could not import RealisticDataGenerator: {exc}")
-        return None
-
-    try:
-        # RealisticDataGenerator hardcodes random.seed(42); we just instantiate.
-        _ = RealisticDataGenerator()
-    except Exception as exc:  # noqa: BLE001
-        print(f"[warn] scenario generator unavailable: {exc}")
-        return None
-
-    # The tertiary eval is intentionally lightweight here; deeper integration
-    # belongs in Phase 4 once SHAP+drift are wired. Documenting scenario names
-    # keeps a slot in results.json for per-scenario recall numbers once they
-    # can be computed against the live consumer.
-    scenarios = [
-        "deployment_spike",
-        "database_slowdown",
-        "cache_miss_storm",
-        "cascading_failure",
-        "traffic_drop",
-    ]
-    return {s: float("nan") for s in scenarios}
 
 
 # ---------------------------------------------------------------------------
@@ -659,7 +628,6 @@ def main() -> int:
             "seed": args.seed,
         },
         "datasets": [_serialize_result(r) for r in canonical_results],
-        "scenarios": evaluate_scenarios(args.seed),
     }
 
     results_path = EVAL_DIR / "results.json"

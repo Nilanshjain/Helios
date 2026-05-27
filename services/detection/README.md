@@ -25,14 +25,16 @@ Events (Kafka) → Detection Consumer → ML Model → Anomaly Alerts (Kafka)
 ### 1. Train Model
 
 ```bash
-# Using synthetic data
-python -m app.ml.training
+# Generate ~2h of labeled chaos telemetry through the live ingestion path,
+# then train the production Isolation Forest on it.
+python scripts/generate_chaos_traffic.py --duration-hours 2 --base-rps 100
+python scripts/train_production.py --timeline data/chaos/timeline_<utc>.json
 
-# Or via API
-curl -X POST http://localhost:8000/api/v1/train \
-  -H "Content-Type: application/json" \
-  -d '{"days": 7, "use_database": false}'
+# Or in one shot via Makefile target:
+make train-production
 ```
+
+There is no `POST /train` API endpoint — training is offline.
 
 ### 2. Start Detection Consumer
 
@@ -52,15 +54,6 @@ python -m app.main
 ```bash
 GET /health
 GET /api/v1/model/info
-```
-
-### Model Training
-```bash
-POST /api/v1/train
-{
-  "days": 7,
-  "use_database": true
-}
 ```
 
 ### Prediction

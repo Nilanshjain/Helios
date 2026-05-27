@@ -266,7 +266,7 @@ class AnomalyDetector:
     def explain(self, features: np.ndarray) -> Optional[Dict[str, Any]]:
         """Compute SHAP attributions for an already-extracted feature vector.
 
-        ``features`` must be the raw 12-feature row (shape ``(1, n_features)``)
+        ``features`` must be the raw feature row (shape ``(1, n_features)``)
         returned by :meth:`AnomalyDetector.predict` under the ``features`` key.
         It is scaled with the stored StandardScaler before being passed to the
         explainer, so attributions live in scaled-feature space — that is the

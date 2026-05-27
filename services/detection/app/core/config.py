@@ -3,15 +3,15 @@
 Threshold sourcing — note for readers:
 The production anomaly threshold is **not** sourced from this file. It is
 saved inside the trained-model pickle (``models/isolation_forest.pkl``) by
-``scripts/train_model.py``, which derives it via an F1 sweep on the
-training data (same methodology as ``scripts/evaluate.py``). ``AnomalyDetector.load()``
-restores that pkl-stored threshold at startup.
+``scripts/train_production.py``, which derives it via an F1 sweep on the
+validation split of the labeled telemetry the model was trained on.
+``AnomalyDetector.load()`` restores that pkl-stored threshold at startup.
 
 The ``models/evaluation/results.json`` file written by ``scripts/evaluate.py``
-holds thresholds for the **NAB/SMD evaluation models** — those models are
-trained on different data, so applying their thresholds to the production
-(synthetic-trained) model would be wrong. The eval thresholds are for
-reporting F1 numbers; the production threshold belongs to the pkl.
+holds thresholds for the **NAB/SMD benchmark evaluation models** — those
+models are trained on different data, so applying their thresholds to the
+production model would be wrong. The eval thresholds are for reporting
+benchmark F1 numbers; the production threshold belongs to the pkl.
 
 If you need to override at runtime (e.g., A/B testing), set the
 ``ANOMALY_THRESHOLD`` env var and update ``AnomalyDetector.load()`` to

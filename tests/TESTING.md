@@ -1,5 +1,20 @@
 # Helios Testing Guide
 
+> ⚠️ **This document is partially stale.** Many sections reference the old
+> training script `scripts/train_model.py` (deleted) and the 12-feature schema
+> (now 27 features: 11 global + 16 per-service). The current training and
+> evaluation workflow lives in:
+>
+> - `scripts/generate_chaos_traffic.py` — labeled telemetry generator
+> - `scripts/train_production.py` — production model trainer
+> - `scripts/evaluate_production.py` — industry-metrics evaluator
+> - `scripts/evaluate_baseline.py` — rule-vs-IF baseline comparison
+> - `scripts/evaluate.py` — NAB / SMD benchmark evaluation (decoupled 12-feature schema)
+>
+> The pytest suites under `services/detection/tests/` and `services/ingestion/tests/`
+> are current. Treat the rest of this guide as historical reference until it's
+> rewritten.
+
 Comprehensive testing documentation for validating all components of the Helios observability platform, including service testing, load testing, ML model validation, and infrastructure testing.
 
 ## Table of Contents

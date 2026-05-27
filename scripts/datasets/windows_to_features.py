@@ -47,7 +47,10 @@ import pandas as pd
 
 from scripts.datasets.types import LabeledStream
 
-# Match services/detection/app/ml/feature_engineering.py exactly.
+# NAB/SMD-eval schema (12 features). Decoupled from the production
+# FeatureExtractor (which is at 27 features in v2 with per-service columns) —
+# benchmark streams have no service identity, so per-service features don't
+# apply. This list stays at the v1 12-feature shape for benchmark reporting.
 FEATURE_NAMES = [
     "event_count",
     "error_rate",

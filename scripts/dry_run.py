@@ -4,7 +4,7 @@
 Exercises the real production code paths in-process:
 
   1. Synthesise an event window the detection consumer would see.
-  2. FeatureExtractor -> 12-feature vector (production code).
+  2. FeatureExtractor -> 27-feature vector (production code).
   3. AnomalyDetector.predict() (production code, uses the on-disk model).
   4. AnomalyDetector.explain() -> SHAP attributions (production code).
   5. Build the alert payload exactly the way detection_consumer does.
@@ -163,7 +163,7 @@ def run() -> int:
 
     model_path = REPO / "models" / "isolation_forest.pkl"
     if not model_path.exists():
-        fail(f"model missing at {model_path}; run `python scripts/train_model.py` first")
+        fail(f"model missing at {model_path}; run `make train-production` (or `python scripts/generate_chaos_traffic.py` then `python scripts/train_production.py`) first")
         return 1
     detector = AnomalyDetector.load(str(model_path))
     prediction = detector.predict(events)

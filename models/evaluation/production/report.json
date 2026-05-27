@@ -1,0 +1,128 @@
+{
+  "timeline_path": "data\\chaos\\timeline_20260527T071432Z.json",
+  "model_path": "C:\\Users\\Nilansh\\Desktop\\Helios\\models\\isolation_forest.pkl",
+  "eval_split": "test",
+  "evaluated_at_utc": "2026-05-27T08:47:05.582009+00:00",
+  "n_windows": 61,
+  "n_anomaly": 19,
+  "n_normal": 42,
+  "anomaly_rate": 0.3114754098360656,
+  "n_scenarios": 5,
+  "threshold": 6.175615574477433e-16,
+  "metrics_at_threshold": {
+    "threshold": 6.175615574477433e-16,
+    "precision": 1.0,
+    "recall": 0.8421052631578947,
+    "f1": 0.9142857142857143,
+    "f2": 0.8695652173913043,
+    "specificity": 1.0,
+    "fpr": 0.0,
+    "mcc": 0.886546621605825,
+    "balanced_accuracy": 0.9210526315789473,
+    "tp": 16,
+    "fp": 0,
+    "tn": 42,
+    "fn": 3
+  },
+  "threshold_independent": {
+    "pr_auc": 0.980312623664424,
+    "roc_auc": 0.9874686716791979,
+    "best_f1": 0.9142857142857143,
+    "best_f1_threshold": 6.175615574477433e-16,
+    "best_f1_precision": 1.0,
+    "best_f1_recall": 0.8421052631578947
+  },
+  "operating_points": {
+    "F0.5_precision_weighted": {
+      "threshold": 6.175615574477433e-16,
+      "f_score": 0.963855421686747,
+      "precision": 1.0,
+      "recall": 0.8421052631578947
+    },
+    "F1_balanced": {
+      "threshold": 6.175615574477433e-16,
+      "f_score": 0.9142857142857143,
+      "precision": 1.0,
+      "recall": 0.8421052631578947
+    },
+    "F2_recall_weighted": {
+      "threshold": 0.020000000000000618,
+      "f_score": 0.9090909090909091,
+      "precision": 0.782608695652174,
+      "recall": 0.9473684210526315
+    }
+  },
+  "per_type_recall": {
+    "cascading_timeout": 1.0,
+    "dependency_failure": 0.25,
+    "latency_spike": NaN,
+    "partial_outage": 1.0
+  },
+  "scenarios": [
+    {
+      "type": "latency_spike",
+      "start_utc": "2026-05-27T07:50:43+00:00",
+      "end_utc": "2026-05-27T07:53:27+00:00",
+      "duration_s": 164.0,
+      "windows_total": 0,
+      "windows_caught": 0,
+      "detection_latency_s": null
+    },
+    {
+      "type": "latency_spike",
+      "start_utc": "2026-05-27T07:59:11+00:00",
+      "end_utc": "2026-05-27T08:04:18+00:00",
+      "duration_s": 307.0,
+      "windows_total": 0,
+      "windows_caught": 0,
+      "detection_latency_s": null
+    },
+    {
+      "type": "dependency_failure",
+      "start_utc": "2026-05-27T08:13:08+00:00",
+      "end_utc": "2026-05-27T08:15:22+00:00",
+      "duration_s": 134.0,
+      "windows_total": 4,
+      "windows_caught": 1,
+      "detection_latency_s": 114.0
+    },
+    {
+      "type": "partial_outage",
+      "start_utc": "2026-05-27T08:21:06+00:00",
+      "end_utc": "2026-05-27T08:22:25+00:00",
+      "duration_s": 79.0,
+      "windows_total": 4,
+      "windows_caught": 4,
+      "detection_latency_s": -34.0
+    },
+    {
+      "type": "cascading_timeout",
+      "start_utc": "2026-05-27T08:27:35+00:00",
+      "end_utc": "2026-05-27T08:32:23+00:00",
+      "duration_s": 288.0,
+      "windows_total": 11,
+      "windows_caught": 11,
+      "detection_latency_s": -33.0
+    }
+  ],
+  "operational": {
+    "scenarios_total": 5,
+    "scenarios_caught": 3,
+    "false_alarms": 0,
+    "clean_windows": 42,
+    "false_alarm_rate_per_hour": 0.0,
+    "mean_score_anomaly": -0.06896398502510963,
+    "mean_score_normal": 0.04298498467035462,
+    "score_separability": 3.2699742416362456,
+    "median_latency_s": -33.0,
+    "p90_latency_s": 84.60000000000001
+  },
+  "verdict": [
+    "**WORKS WELL.** PR-AUC 0.980 significantly above random (0.311), F1 0.914, ROC-AUC 0.987.",
+    "Low false-alarm rate (0.0/hour) \u2014 operationally clean.",
+    "Fast detection: median latency -33s \u2014 alerts fire within 1-2 windows of incident onset.",
+    "Reliably catches: cascading_timeout, partial_outage.",
+    "Struggles with: dependency_failure (recall < 0.5). These chaos types don't perturb the feature distribution enough on this test split.",
+    "Strong class separation: anomaly scores are 3.3\u03c3 from normal \u2014 clear decision boundary."
+  ]
+}

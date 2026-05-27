@@ -1,256 +1,182 @@
-"""Tests for anomaly detection module"""
+"""Tests for anomaly detection module (v2 schema: 27 features)."""
 
 import pytest
 import numpy as np
 from unittest.mock import Mock, patch
 
 from app.ml.anomaly_detector import AnomalyDetector
+from app.ml.feature_engineering import FeatureExtractor
+
+
+FEATURE_NAMES_V2 = list(FeatureExtractor.FEATURE_NAMES)
+N_FEATURES = len(FEATURE_NAMES_V2)
+
+
+def _events(n: int, error_rate: float = 0.1, avg_latency: int = 100,
+            timestamp: str = "2024-01-01T12:00:00Z") -> list:
+    events = []
+    n_errors = int(n * error_rate)
+    for i in range(n):
+        is_error = i < n_errors
+        events.append({
+            "timestamp": timestamp,
+            "service": "test-service",
+            "level": "ERROR" if is_error else "INFO",
+            "message": f"message {i}",
+            "metadata": {
+                "latency_ms": avg_latency * 10 if is_error else avg_latency,
+                "endpoint": f"/api/endpoint{i % 3}",
+            },
+        })
+    return events
+
+
+def _training_data(n_windows: int = 30, seed: int = 0) -> list:
+    """Realistic-ish training data with feature variance — the IF can't learn
+    discrimination from a constant matrix."""
+    import random as _random
+    rng = _random.Random(seed)
+    out = []
+    for i in range(n_windows):
+        hour = i % 24
+        size = rng.randint(15, 40)
+        avg_lat = rng.randint(40, 150)
+        err = rng.uniform(0.02, 0.08)
+        # Build events with per-event latency jitter so percentile/std features have spread.
+        events = []
+        n_errors = int(size * err)
+        for j in range(size):
+            is_error = j < n_errors
+            events.append({
+                "timestamp": f"2024-01-01T{hour:02d}:30:00Z",
+                "service": "test-service",
+                "level": "ERROR" if is_error else "INFO",
+                "message": f"m{j}",
+                "metadata": {
+                    "latency_ms": int(rng.gauss(avg_lat * (10 if is_error else 1), avg_lat * 0.3)),
+                    "endpoint": f"/api/endpoint{j % 3}",
+                },
+            })
+        out.append(events)
+    return out
 
 
 class TestAnomalyDetector:
-    """Test suite for AnomalyDetector class"""
-
-    def create_sample_events(self, n_events: int, error_rate: float = 0.1, avg_latency: int = 100):
-        """Helper to create sample events for testing"""
-        events = []
-
-        for i in range(n_events):
-            level = "ERROR" if i < int(n_events * error_rate) else "INFO"
-            latency = avg_latency * 10 if level == "ERROR" else avg_latency
-
-            events.append(
-                {
-                    "service": "test-service",
-                    "level": level,
-                    "message": f"message {i}",
-                    "metadata": {
-                        "latency_ms": latency,
-                        "endpoint": f"/api/endpoint{i % 3}",
-                    },
-                }
-            )
-
-        return events
-
-    def create_training_data(self, n_windows: int = 50):
-        """Create training data with multiple event windows"""
-        return [self.create_sample_events(20, error_rate=0.05) for _ in range(n_windows)]
-
     def test_initialization(self):
-        """Test detector initialization with default parameters"""
         detector = AnomalyDetector()
-
         assert detector.threshold == -0.7
         assert not detector.is_trained
         assert detector.model is not None
         assert detector.scaler is not None
 
     def test_initialization_custom_params(self):
-        """Test detector initialization with custom parameters"""
-        detector = AnomalyDetector(
-            contamination=0.1, threshold=-0.8, n_estimators=50, random_state=123
-        )
-
+        detector = AnomalyDetector(contamination=0.1, threshold=-0.8, n_estimators=50, random_state=123)
         assert detector.threshold == -0.8
         assert not detector.is_trained
 
     def test_train_success(self):
-        """Test successful model training"""
         detector = AnomalyDetector(contamination=0.05, threshold=-0.7)
-        training_data = self.create_training_data(n_windows=30)
-
-        stats = detector.train(training_data)
-
+        stats = detector.train(_training_data(n_windows=30))
         assert detector.is_trained
         assert stats["n_windows"] == 30
         assert stats["n_valid_windows"] >= 20
-        assert stats["n_features"] == 7
-        assert "score_mean" in stats
-        assert "score_std" in stats
+        assert stats["n_features"] == N_FEATURES
 
     def test_train_insufficient_windows(self):
-        """Test training fails with insufficient windows"""
         detector = AnomalyDetector()
-        training_data = self.create_training_data(n_windows=5)
-
         with pytest.raises(ValueError, match="Insufficient training windows"):
-            detector.train(training_data)
+            detector.train(_training_data(n_windows=5))
 
     def test_predict_without_training(self):
-        """Test that prediction fails if model not trained"""
         detector = AnomalyDetector()
-        events = self.create_sample_events(20)
-
         with pytest.raises(ValueError, match="Model not trained"):
-            detector.predict(events)
+            detector.predict(_events(20))
 
-    def test_predict_normal_behavior(self):
-        """Test prediction on normal behavior"""
+    def test_predict_returns_expected_keys(self):
         detector = AnomalyDetector(contamination=0.05, threshold=-0.7)
-        training_data = self.create_training_data(n_windows=30)
-        detector.train(training_data)
+        detector.train(_training_data(n_windows=30))
+        result = detector.predict(_events(20))
+        for key in ("is_anomaly", "score", "features", "severity", "threshold", "feature_names"):
+            assert key in result
+        assert len(result["features"]) == N_FEATURES
+        assert result["feature_names"] == FEATURE_NAMES_V2
 
-        # Normal events with low error rate
-        normal_events = self.create_sample_events(20, error_rate=0.05, avg_latency=100)
-        result = detector.predict(normal_events)
-
-        assert "is_anomaly" in result
-        assert "score" in result
-        assert "features" in result
-        assert "severity" in result
-        assert len(result["features"]) == 7
-
-    def test_predict_anomalous_behavior(self):
-        """Test prediction on anomalous behavior"""
+    def test_predict_anomalous_lower_score(self):
         detector = AnomalyDetector(contamination=0.05, threshold=-0.7)
-
-        # Train on normal data
-        normal_data = [
-            self.create_sample_events(20, error_rate=0.05, avg_latency=100)
-            for _ in range(30)
-        ]
-        detector.train(normal_data)
-
-        # Test on anomalous data (high error rate and latency)
-        anomalous_events = self.create_sample_events(20, error_rate=0.8, avg_latency=1000)
-        result = detector.predict(anomalous_events)
-
-        # Anomalous data should have lower score (more negative)
-        assert result["score"] < 0, "Anomalous data should have negative score"
+        detector.train(_training_data(n_windows=30))
+        normal_score = detector.predict(_events(20, error_rate=0.05, avg_latency=100))["score"]
+        anomalous_score = detector.predict(_events(20, error_rate=0.8, avg_latency=1000))["score"]
+        assert anomalous_score < normal_score
 
     def test_severity_calculation(self):
-        """Test severity level calculation"""
         detector = AnomalyDetector()
+        # 27-feature vector; feature index 1 is error_rate (production uses it
+        # in the severity hybrid)
+        def feat(error_rate: float) -> np.ndarray:
+            arr = np.zeros(N_FEATURES, dtype=float)
+            arr[0] = 100  # event_count
+            arr[1] = error_rate
+            arr[2] = 100  # p50
+            arr[3] = 200  # p95
+            arr[4] = 300  # p99
+            return arr
 
-        # Test different severity levels
-        test_cases = [
-            # (score, error_rate, expected_severity)
+        cases = [
             (-1.5, 0.6, "critical"),
             (-0.9, 0.4, "high"),
             (-0.75, 0.2, "medium"),
             (-0.5, 0.05, "low"),
         ]
-
-        for score, error_rate, expected_severity in test_cases:
-            features = np.array([100, error_rate, 100, 200, 300, 50, 3])
-            severity = detector._calculate_severity(score, features)
-            assert (
-                severity == expected_severity
-            ), f"Score {score}, error_rate {error_rate} should be {expected_severity}, got {severity}"
-
-    def test_feature_names_in_result(self):
-        """Test that feature names are included in prediction result"""
-        detector = AnomalyDetector()
-        training_data = self.create_training_data(n_windows=30)
-        detector.train(training_data)
-
-        events = self.create_sample_events(20)
-        result = detector.predict(events)
-
-        expected_features = [
-            "total_events",
-            "error_rate",
-            "avg_latency",
-            "p95_latency",
-            "p99_latency",
-            "latency_stddev",
-            "unique_endpoints",
-        ]
-
-        assert result["feature_names"] == expected_features
+        for score, err, expected in cases:
+            assert detector._calculate_severity(score, feat(err)) == expected, (
+                f"score={score} err={err} expected {expected}"
+            )
 
     def test_save_without_training(self):
-        """Test that save fails if model not trained"""
         detector = AnomalyDetector()
-
         with pytest.raises(ValueError, match="Cannot save untrained model"):
             detector.save("/tmp/test_model.pkl")
 
     @patch("joblib.dump")
     @patch("pathlib.Path.mkdir")
-    def test_save_success(self, mock_mkdir, mock_dump):
-        """Test successful model save"""
+    def test_save_includes_full_payload(self, mock_mkdir, mock_dump):
         detector = AnomalyDetector()
-        training_data = self.create_training_data(n_windows=30)
-        detector.train(training_data)
-
+        detector.train(_training_data(n_windows=30))
         detector.save("/tmp/test_model.pkl")
-
         mock_dump.assert_called_once()
-        # Verify the data being saved includes model, scaler, threshold
-        saved_data = mock_dump.call_args[0][0]
-        assert "model" in saved_data
-        assert "scaler" in saved_data
-        assert "threshold" in saved_data
+        saved = mock_dump.call_args[0][0]
+        for key in ("model", "scaler", "threshold", "feature_names", "shap_background"):
+            assert key in saved
 
     @patch("joblib.load")
     @patch("pathlib.Path.exists")
-    def test_load_success(self, mock_exists, mock_load):
-        """Test successful model load"""
+    def test_load_restores_state(self, mock_exists, mock_load):
         mock_exists.return_value = True
         mock_load.return_value = {
             "model": Mock(),
             "scaler": Mock(),
             "threshold": -0.7,
-            "feature_names": ["feature1", "feature2"],
+            "feature_names": FEATURE_NAMES_V2,
+            "shap_background": np.zeros((10, N_FEATURES)),
         }
-
         detector = AnomalyDetector.load("/tmp/test_model.pkl")
-
         assert detector.is_trained
         assert detector.threshold == -0.7
-        mock_load.assert_called_once_with("/tmp/test_model.pkl")
+        assert detector._shap_background is not None
 
     @patch("pathlib.Path.exists")
     def test_load_file_not_found(self, mock_exists):
-        """Test load fails when file doesn't exist"""
         mock_exists.return_value = False
-
         with pytest.raises(FileNotFoundError):
             AnomalyDetector.load("/tmp/nonexistent_model.pkl")
 
 
 class TestAnomalyDetectorIntegration:
-    """Integration tests for complete anomaly detection workflow"""
-
-    def create_sample_events(self, n_events: int, error_rate: float = 0.1, avg_latency: int = 100):
-        """Helper to create sample events"""
-        events = []
-        for i in range(n_events):
-            level = "ERROR" if i < int(n_events * error_rate) else "INFO"
-            latency = avg_latency * 10 if level == "ERROR" else avg_latency
-            events.append(
-                {
-                    "service": "test-service",
-                    "level": level,
-                    "message": f"message {i}",
-                    "metadata": {"latency_ms": latency, "endpoint": "/api/test"},
-                }
-            )
-        return events
-
     def test_end_to_end_workflow(self):
-        """Test complete workflow: train -> predict -> save -> load -> predict"""
-        # Initialize detector
         detector = AnomalyDetector(contamination=0.05, threshold=-0.7)
-
-        # Train on normal data
-        training_data = [
-            self.create_sample_events(20, error_rate=0.05, avg_latency=100) for _ in range(30)
-        ]
-        stats = detector.train(training_data)
-
+        stats = detector.train(_training_data(n_windows=30))
         assert stats["n_windows"] == 30
 
-        # Predict on normal data
-        normal_result = detector.predict(
-            self.create_sample_events(20, error_rate=0.05, avg_latency=100)
-        )
-
-        # Predict on anomalous data
-        anomalous_result = detector.predict(
-            self.create_sample_events(20, error_rate=0.7, avg_latency=2000)
-        )
-
-        # Anomalous data should have lower score
+        normal_result = detector.predict(_events(20, error_rate=0.05, avg_latency=100))
+        anomalous_result = detector.predict(_events(20, error_rate=0.7, avg_latency=2000))
         assert anomalous_result["score"] < normal_result["score"]

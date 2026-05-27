@@ -82,9 +82,9 @@ class DetectionConsumer:
     def _update_model_age_metric(self) -> None:
         """Set helios_model_prediction_age_days from models/model_config.json.
 
-        ``training_date`` is written by scripts/train_model.py at training
-        time. If the config is missing or malformed we leave the gauge at
-        zero — preferable to crashing the consumer over a metric.
+        ``training_date`` is written by scripts/train_production.py at
+        training time. If the config is missing or malformed we leave the
+        gauge at zero — preferable to crashing the consumer over a metric.
         """
         try:
             from pathlib import Path
