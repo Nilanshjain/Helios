@@ -83,8 +83,21 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements-dev.txt
 
-      - name: Drift check (synthetic, severe)
-        run: python scripts/drift_check.py --simulate severe
+      - name: Drift check smoke — no drift exits 0, severe drift exits 1
+        run: |
+          # The no-drift path must exit 0 (drift_check produces a clean report).
+          python scripts/drift_check.py --simulate none
+          # The severe-drift path is designed to exit 1 (signals "retrain
+          # candidate" for cron consumers). Capture and assert.
+          set +e
+          python scripts/drift_check.py --simulate severe
+          rc=$?
+          set -e
+          if [ "$rc" -ne 1 ]; then
+            echo "expected exit 1 for severe simulated drift, got $rc"
+            exit 1
+          fi
+          echo "drift_check correctly returned 1 for severe drift"
 
       # NOTE: scripts/evaluate.py downloads NAB + SMD via git clone
       # (~50 MB total) and runs in ~2 minutes. We skip it in CI by
